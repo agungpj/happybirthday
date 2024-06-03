@@ -1,125 +1,279 @@
-import { Container, Heading, SimpleGrid, Divider } from '@chakra-ui/react'
-import Layout from '../components/layouts/article'
-import Section from '../components/section'
-import { WorkGridItem } from '../components/grid-item'
+import { 
+  Container, Heading, SimpleGrid, CardHeader, Flex, Avatar, Box, 
+  IconButton, CardFooter, Card, Text, CardBody, Image, Button, 
+  useColorModeValue, Input, Modal, ModalContent, ModalHeader, 
+  ModalBody, ModalFooter, useDisclosure, ModalCloseButton, ModalOverlay,
+  Menu, MenuButton, MenuList, MenuItem
+} from '@chakra-ui/react';
+import Layout from '../components/layouts/article';
+import Section from '../components/section';
+import { AttachmentIcon, ChatIcon } from '@chakra-ui/icons';
+import { BsThreeDotsVertical } from 'react-icons/bs'; 
+import { ChevronDownIcon } from '@chakra-ui/icons';
+import { useEffect, useState, useRef } from 'react';
+import { db, storage } from '../firebase';
 
-import thumbInkdrop from '../public/images/works/inkdrop_eyecatch.png'
-import thumbWalknote from '../public/images/works/walknote_eyecatch.png'
-import thumbFourPainters from '../public/images/works/the-four-painters_eyecatch.jpg'
-import thumbMenkiki from '../public/images/works/menkiki_eyecatch.png'
-import thumbMargelo from '../public/images/works/margelo_eyecatch.png'
-import thumbModeTokyo from '../public/images/works/modetokyo_eyecatch.png'
-import thumbStyly from '../public/images/works/styly_eyecatch.png'
-import thumbPichu2 from '../public/images/works/pichu2_eyecatch.png'
-import thumbFreeDBTagger from '../public/images/works/freedbtagger_eyecatch.png'
-import thumbAmembo from '../public/images/works/amembo_eyecatch.png'
+const Works = () => {
+  const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200');
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [notes, setNotes] = useState([]);
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
 
-const Works = () => (
-  <Layout title="Works">
-    <Container>
-      <Heading as="h3" fontSize={20} mb={4}>
-        Works
-      </Heading>
+  const OverlayOne = () => (
+    <ModalOverlay
+      bg='blackAlpha.300'
+      backdropFilter='blur(10px)'
+    />
+  );
 
-      <SimpleGrid columns={[1, 1, 2]} gap={6}>
-        <Section>
-          <WorkGridItem id="inkdrop" title="Inkdrop" thumbnail={thumbInkdrop}>
-            A Markdown note-taking app with 100+ plugins, cross-platform and
-            encrypted data sync support
-          </WorkGridItem>
-        </Section>
-        <Section>
-          <WorkGridItem
-            id="walknote"
-            title="walknote"
-            thumbnail={thumbWalknote}
-          >
-            Music recommendation app for iOS
-          </WorkGridItem>
-        </Section>
+  useEffect(() => {
+    fetchNotes().catch(console.error);
+  }, []);
 
-        <Section delay={0.1}>
-          <WorkGridItem
-            id="fourpainters"
-            title="The four painters"
-            thumbnail={thumbFourPainters}
-          >
-            A video work generated with deep learning, imitating famous four
-            painters like Van Gogh
-          </WorkGridItem>
-        </Section>
-        <Section delay={0.1}>
-          <WorkGridItem id="menkiki" thumbnail={thumbMenkiki} title="Menkiki">
-            An app that suggests ramen(noodle) shops based on a given photo of
-            the ramen you want to eat
-          </WorkGridItem>
-        </Section>
-      </SimpleGrid>
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setImage(file);
+      const previewURL = URL.createObjectURL(file);
+      setImagePreview(previewURL);
+    }
+  };
 
-      <Section delay={0.2}>
-        <Divider my={6} />
+  const handleSubmit = () => {
+    if (image) {
+      uploadImage(image);
+    } else {
+      openModal('Upload Failed', 'Please select an image to upload.');
+    }
+  };
 
+  const uploadImage = async (file) => {
+    if (!file) return;
+    const filename = `${Date.now()}-${file.name}`;
+    const storageRef = storage.ref().child(`images/${filename}`);
+    const uploadTask = storageRef.put(file);
+
+    setDescription('');
+
+    uploadTask.on(
+      'state_changed',
+      snapshot => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      error => {
+        console.error('Upload failed:', error);
+      },
+      async () => {
+        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+        createChat(downloadURL);
+      }
+    );
+  };
+
+  const createChat = async (photoUrl) => {
+    try {
+      await db.collection('mading').add({
+        chatName: description,
+        photoUrl
+      });
+      setSuccess(true);
+      openModal('Success Upload!', 'Mading telah ditambahkan');
+      setDescription('');
+      setImage(null);
+      setImagePreview(null);  // Clear the image preview
+      setTimeout(() => {
+        setSuccess(false);
+      }, 2000);
+      fetchNotes();
+    } catch (error) {
+      console.error('Error adding document:', error);
+      openModal('Error', 'Failed to add document. Please try again.');
+    }
+  };
+
+  const handleDelete = async (id, photoUrl) => {
+    try {
+      if (photoUrl) {
+        const path = getImagePathFromUrl(photoUrl);
+        const storageRef = storage.ref();
+        const imageRef = storageRef.child(path);
+        await imageRef.delete();
+      }
+      
+      await db.collection("mading").doc(id).delete();
+      fetchNotes();  // Refresh notes after deletion
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const getImagePathFromUrl = (url) => {
+    const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/agung2-apps.appspot.com/o/';
+    const path = url.replace(baseUrl, '').split('?')[0];
+    return decodeURIComponent(path);
+  };
+
+  const fetchNotes = async () => {
+    try {
+      const snapshot = await db.collection('mading').get();
+      const notesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        data: doc.data()
+      }));
+      setNotes(notesData);
+    } catch (error) {
+      console.error('Failed to fetch notes:', error);
+    }
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleButtonClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleImageClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const openModal = (title, message) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    onOpen();
+  };
+
+  return (
+    <Layout title="Works">
+      <Modal isCentered isOpen={isOpen} onClose={onClose}>
+        <OverlayOne />
+        <ModalContent>
+          <ModalHeader>{modalTitle}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>{modalMessage}</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Container>
         <Heading as="h3" fontSize={20} mb={4}>
-          Collaborations
+          Works
         </Heading>
-      </Section>
 
-      <SimpleGrid columns={[1, 1, 2]} gap={6}>
-        <Section delay={0.3}>
-          <WorkGridItem id="margelo" thumbnail={thumbMargelo} title="Margelo">
-            A website of the elite app development and contracting agency based
-            in Austria
-          </WorkGridItem>
-        </Section>
-        <Section delay={0.3}>
-          <WorkGridItem
-            id="modetokyo"
-            thumbnail={thumbModeTokyo}
-            title="mode.tokyo"
-          >
-            The mode magazine for understanding to personally enjoy Japan
-          </WorkGridItem>
-        </Section>
-        <Section delay={0.3}>
-          <WorkGridItem id="styly" thumbnail={thumbStyly} title="Styly">
-            A VR Creative tools for fashion brands
-          </WorkGridItem>
-        </Section>
-      </SimpleGrid>
+        <SimpleGrid columns={[1, 1, 2]} gap={6}>
+          <Section>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <Box
+                borderRadius="lg"
+                mb={6}
+                p={3}
+                width={400}
+                textAlign="center"
+                bg={bgValue}
+                css={{ backdropFilter: 'blur(10px)' }}
+              >
+                <div style={{ display: 'flex' }}>
+                  <Input
+                    placeholder="Enter name"
+                    value={description}  // Bind the input to the state
+                    onChange={e => setDescription(e.target.value)}
+                  /> 
+                  <IconButton
+                    variant='ghost'
+                    colorScheme='gray'
+                    aria-label='See menu'
+                    ml={3}
+                    icon={<AttachmentIcon />}
+                    onClick={handleButtonClick}
+                  />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleFileChange}
+                  />
+                </div>
+                {imagePreview && (
+                  <Flex justifyContent="center" alignItems="center" mt={4}>
+                    <Image
+                      src={imagePreview}
+                      alt="Image Preview"
+                      boxSize="200px"
+                      objectFit="cover"
+                      borderRadius="lg"
+                      onClick={handleImageClick}
+                    />
+                  </Flex>
+                )}
+                <Button mt={3} onClick={handleSubmit}>
+                  Upload
+                </Button>
+              </Box>
+            </div>
+            {notes.map(({ id, data: { chatName, photoUrl } }) => (
+              <Card maxW='md' key={id} pb={10} mb={10}>
+                <CardHeader>
+                  <Flex alignItems='center' justifyContent='space-between'>
+                    <Flex flex='1' gap='4' alignItems='center' flexWrap='wrap'>
+                      <Avatar name='Segun Adebayo' src='https://bit.ly/sage-adebayo' />
+                      <Box>
+                        <Text>Creator, Chakra UI</Text>
+                      </Box>
+                    </Flex>
+                    <Menu>
+                      <MenuButton
+                        as={IconButton}
+                        variant='ghost'
+                        colorScheme='gray'
+                        aria-label='See menu'
+                        icon={<BsThreeDotsVertical />}
+                      />
+                      <MenuList>
+                        <MenuItem onClick={() => handleDelete(id, photoUrl)}>Delete Post</MenuItem>
+                      </MenuList>
+                    </Menu>
+                  </Flex>
+                </CardHeader>
+                <CardBody>
+                  <Text>
+                    {chatName}
+                  </Text>
+                </CardBody>
+                <Image
+                  objectFit='cover'
+                  src={photoUrl}
+                  alt='Chakra UI'
+                />
+                <CardFooter
+                  justify='space-between'
+                  flexWrap='wrap'
+                  sx={{
+                    '& > button': {
+                      minW: '136px',
+                    },
+                  }}
+                >
+                  <Button flex='1' variant='ghost' leftIcon={<ChatIcon />}>
+                    Comment
+                  </Button>
+                </CardFooter>
+              </Card>  
+            ))}
+          </Section>
+        </SimpleGrid>
+      </Container>
+    </Layout>
+  );
+};
 
-      <Section delay={0.4}>
-        <Divider my={6} />
-
-        <Heading as="h3" fontSize={20} mb={4}>
-          Old works
-        </Heading>
-      </Section>
-
-      <SimpleGrid columns={[1, 1, 2]} gap={6}>
-        <Section delay={0.5}>
-          <WorkGridItem id="pichu2" thumbnail={thumbPichu2} title="Pichu*Pichu">
-            Twitter client app for iPhone Safari
-          </WorkGridItem>
-        </Section>
-        <Section delay={0.5}>
-          <WorkGridItem
-            id="freedbtagger"
-            thumbnail={thumbFreeDBTagger}
-            title="freeDBTagger"
-          >
-            Automatic audio file tagging tool using FreeDB for Windows
-          </WorkGridItem>
-        </Section>
-        <Section delay={0.6}>
-          <WorkGridItem id="amembo" thumbnail={thumbAmembo} title="Amembo">
-            P2P private file sharing tool with MSN Messenger integration for
-            Windows
-          </WorkGridItem>
-        </Section>
-      </SimpleGrid>
-    </Container>
-  </Layout>
-)
-
-export default Works
-export { getServerSideProps } from '../components/chakra'
+export default Works;
+export { getServerSideProps } from '../components/chakra';

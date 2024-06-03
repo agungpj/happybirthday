@@ -39,94 +39,12 @@ import VoxelDog from '../components/voxel-dog'
 
 const Home = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
-  const [notes, setNotes] = useState([])
-  const [noteTitle, setNoteTitle] = useState('')
   const [name, setName] = useState('')
-  const [noteDescription, setNoteDescription] = useState('')
-  const [image, setImage] = useState(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [success, setSuccess] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const finalRef = useRef(null)
   const [alert, setAlert] = useState(false)
   const [rotate, setRotate] = useState(0)
 
-
-  useEffect(() => {
-    fetchNotes().catch(console.error)
-  if (localStorage.getItem('user')) {
-    onOpen()
-    setRotate(9)
-  } 
-  }, [])
-
-  const uploadImage = async file => {
-    if (!file) return
-    const filename = `${Date.now()}-${file.name}`
-    const storageRef = storage.ref().child(`images/${filename}`) // Corrected method to access ref
-    const uploadTask = storageRef.put(file)
-
-    uploadTask.on(
-      'state_changed',
-      snapshot => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-        setUploadProgress(progress)
-      },
-      error => {
-        console.error('Upload failed:', error)
-      },
-      async () => {
-        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL()
-        createChat(downloadURL)
-      }
-    )
-  }
-
-  const createChat = async photoUrl => {
-    try {
-      await db.collection('chats').add({
-        chatName: noteTitle,
-        photoUrl
-      })
-      setSuccess(true)
-      setTimeout(() => {
-        setSuccess(false)
-      }, 2000)
-    } catch (error) {
-      console.error('Error adding document:', error)
-    }
-  }
-
-  const fetchNotes = async () => {
-    try {
-      const snapshot = await db.collection('chats').get()
-      const notesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        data: doc.data()
-      }))
-      setNotes(notesData)
-    } catch (error) {
-      console.error('Failed to fetch notes:', error)
-    }
-  }
-
-  const handleAddNote = async () => {
-    uploadImage(image)
-    setNoteTitle('')
-    setNoteDescription('')
-    fetchNotes()
-  }
-
-  const handleDeleteNote = async id => {
-    db.collection('notes').doc(id).delete()
-    fetchNotes()
-  }
-
-  const handleEditNote = async (id, newTitle, newDescription) => {
-    const updatedNote = { title: newTitle, description: newDescription }
-    db.collection('notes').doc(id).update(updatedNote)
-    fetchNotes()
-  }
 
   const handleEnter = () => {
     if(name == 'test') {

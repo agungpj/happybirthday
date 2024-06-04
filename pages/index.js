@@ -46,7 +46,15 @@ const Home = () => {
   const [rotate, setRotate] = useState(0)
 
 
+  useEffect(() => {
+    const getName = localStorage.getItem('user');
+
+    getName == 'test' ? onOpen() : onClose()
+  }, [])
+
   const handleEnter = () => {
+    
+
     if(name == 'test') {
       // if() 
       setRotate(9)
@@ -126,8 +134,24 @@ const Home = () => {
           >
            Mading
           </Button>
-        <Button colorScheme='teal' style={{margin: '10px 100px'}}>Chat</Button>
-        <Button colorScheme='teal' style={{margin: '10px 100px'}}>Gallery</Button>
+          <Button
+            as={NextLink}
+            href="/wallpapers"
+            scroll={false}
+            style={{margin: '10px 100px'}}
+            colorScheme="teal"
+          >
+           Chat
+          </Button>
+        <Button
+            as={NextLink}
+            href="/posts"
+            scroll={false}
+            style={{margin: '10px 100px'}}
+            colorScheme="teal"
+          >
+           Nabung
+          </Button>
      
         </div>
        

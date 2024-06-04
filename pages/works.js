@@ -9,7 +9,6 @@ import Layout from '../components/layouts/article';
 import Section from '../components/section';
 import { AttachmentIcon, ChatIcon } from '@chakra-ui/icons';
 import { BsThreeDotsVertical } from 'react-icons/bs'; 
-import { ChevronDownIcon } from '@chakra-ui/icons';
 import { useEffect, useState, useRef } from 'react';
 import { db, storage } from '../firebase';
 
@@ -18,18 +17,18 @@ const Works = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [notes, setNotes] = useState([]);
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [success, setSuccess] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [modalTitle, setModalTitle] = useState('');
   const [modalMessage, setModalMessage] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState({});
+  const fileInputRef = useRef(null);
 
   const OverlayOne = () => (
-    <ModalOverlay
-      bg='blackAlpha.300'
-      backdropFilter='blur(10px)'
-    />
+    <ModalOverlay bg='blackAlpha.300' backdropFilter='blur(10px)' />
   );
 
   useEffect(() => {
@@ -37,57 +36,74 @@ const Works = () => {
   }, []);
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setImage(file);
-      const previewURL = URL.createObjectURL(file);
-      setImagePreview(previewURL);
+    const files = Array.from(event.target.files);
+    if (files.length) {
+      setImages(files);
+      const previews = files.map(file => URL.createObjectURL(file));
+      setImagePreviews(previews);
     }
   };
 
   const handleSubmit = () => {
-    if (image) {
-      uploadImage(image);
+    if (images.length > 0) {
+      uploadImages(images);
     } else {
-      openModal('Upload Failed', 'Please select an image to upload.');
+      openModal('Upload Failed', 'Please select images to upload.');
     }
   };
 
-  const uploadImage = async (file) => {
-    if (!file) return;
-    const filename = `${Date.now()}-${file.name}`;
-    const storageRef = storage.ref().child(`images/${filename}`);
-    const uploadTask = storageRef.put(file);
-
-    setDescription('');
-
-    uploadTask.on(
-      'state_changed',
-      snapshot => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      error => {
-        console.error('Upload failed:', error);
-      },
-      async () => {
-        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-        createChat(downloadURL);
-      }
-    );
+  const uploadImages = async (files) => {
+    if (files.length === 0) return;
+    
+    const promises = files.map(file => uploadImage(file));
+    try {
+      const urls = await Promise.all(promises);
+      createChat(urls);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    }
   };
 
-  const createChat = async (photoUrl) => {
+  const uploadImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const filename = `${Date.now()}-${file.name}`;
+      const storageRef = storage.ref().child(`images/${filename}`);
+      const uploadTask = storageRef.put(file);
+
+      setDescription('');
+
+      uploadTask.on(
+        'state_changed',
+        snapshot => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(prevProgress => ({
+            ...prevProgress,
+            [file.name]: progress
+          }));
+        },
+        error => {
+          console.error('Upload failed:', error);
+          reject(error);
+        },
+        async () => {
+          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+          resolve(downloadURL);
+        }
+      );
+    });
+  };
+
+  const createChat = async (photoUrls) => {
     try {
       await db.collection('mading').add({
         chatName: description,
-        photoUrl
+        photoUrls
       });
       setSuccess(true);
       openModal('Success Upload!', 'Mading telah ditambahkan');
       setDescription('');
-      setImage(null);
-      setImagePreview(null);  // Clear the image preview
+      setImages([]);
+      setImagePreviews([]);
       setTimeout(() => {
         setSuccess(false);
       }, 2000);
@@ -98,17 +114,20 @@ const Works = () => {
     }
   };
 
-  const handleDelete = async (id, photoUrl) => {
+  const handleDelete = async (id, photoUrls) => {
     try {
-      if (photoUrl) {
-        const path = getImagePathFromUrl(photoUrl);
+      if (photoUrls) {
         const storageRef = storage.ref();
-        const imageRef = storageRef.child(path);
-        await imageRef.delete();
+        const deletePromises = photoUrls.map(url => {
+          const path = getImagePathFromUrl(url);
+          const imageRef = storageRef.child(path);
+          return imageRef.delete();
+        });
+        await Promise.all(deletePromises);
       }
-      
+
       await db.collection("mading").doc(id).delete();
-      fetchNotes();  // Refresh notes after deletion
+      fetchNotes();
     } catch (error) {
       alert(error.message);
     }
@@ -123,17 +142,25 @@ const Works = () => {
   const fetchNotes = async () => {
     try {
       const snapshot = await db.collection('mading').get();
-      const notesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        data: doc.data()
-      }));
-      setNotes(notesData);
+      const notesData = snapshot.docs.map(async doc => {
+        const data = doc.data();
+        const commentsSnapshot = await db.collection('mading').doc(doc.id).collection('comments').get();
+        const commentsData = commentsSnapshot.docs.map(commentDoc => ({
+          id: commentDoc.id,
+          ...commentDoc.data()
+        }));
+        return {
+          id: doc.id,
+          data,
+          comments: commentsData
+        };
+      });
+      const resolvedNotes = await Promise.all(notesData);
+      setNotes(resolvedNotes);
     } catch (error) {
       console.error('Failed to fetch notes:', error);
     }
   };
-
-  const fileInputRef = useRef(null);
 
   const handleButtonClick = () => {
     fileInputRef.current.click();
@@ -147,6 +174,21 @@ const Works = () => {
     setModalTitle(title);
     setModalMessage(message);
     onOpen();
+  };
+
+  const handleAddComment = async (noteId) => {
+    if (newComment.trim() === '') return;
+
+    try {
+      await db.collection('mading').doc(noteId).collection('comments').add({
+        text: newComment,
+        createdAt: new Date()
+      });
+      setNewComment('');
+      fetchNotes();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
   return (
@@ -184,7 +226,7 @@ const Works = () => {
                 <div style={{ display: 'flex' }}>
                   <Input
                     placeholder="Enter name"
-                    value={description}  // Bind the input to the state
+                    value={description}
                     onChange={e => setDescription(e.target.value)}
                   /> 
                   <IconButton
@@ -199,19 +241,24 @@ const Works = () => {
                     type="file"
                     ref={fileInputRef}
                     style={{ display: 'none' }}
+                    multiple
                     onChange={handleFileChange}
                   />
                 </div>
-                {imagePreview && (
-                  <Flex justifyContent="center" alignItems="center" mt={4}>
-                    <Image
-                      src={imagePreview}
-                      alt="Image Preview"
-                      boxSize="200px"
-                      objectFit="cover"
-                      borderRadius="lg"
-                      onClick={handleImageClick}
-                    />
+                {imagePreviews.length > 0 && (
+                  <Flex justifyContent="center" alignItems="center" mt={4} flexWrap="wrap">
+                    {imagePreviews.map((preview, index) => (
+                      <Image
+                        key={index}
+                        src={preview}
+                        alt="Image Preview"
+                        boxSize="100px"
+                        objectFit="cover"
+                        borderRadius="lg"
+                        onClick={handleImageClick}
+                        m={2}
+                      />
+                    ))}
                   </Flex>
                 )}
                 <Button mt={3} onClick={handleSubmit}>
@@ -219,7 +266,7 @@ const Works = () => {
                 </Button>
               </Box>
             </div>
-            {notes.map(({ id, data: { chatName, photoUrl } }) => (
+            {notes.map(({ id, data: { chatName, photoUrls }, comments }) => (
               <Card maxW='md' key={id} pb={10} mb={10}>
                 <CardHeader>
                   <Flex alignItems='center' justifyContent='space-between'>
@@ -238,21 +285,70 @@ const Works = () => {
                         icon={<BsThreeDotsVertical />}
                       />
                       <MenuList>
-                        <MenuItem onClick={() => handleDelete(id, photoUrl)}>Delete Post</MenuItem>
+                        <MenuItem onClick={() => handleDelete(id, photoUrls)}>Delete Post</MenuItem>
                       </MenuList>
                     </Menu>
                   </Flex>
                 </CardHeader>
                 <CardBody>
-                  <Text>
-                    {chatName}
-                  </Text>
+                  <Text mb={3}>{chatName}</Text>
+                  {photoUrls.length > 1 ? (
+                  <Flex justifyContent="center" alignItems="center" mt={4} flexWrap="wrap">
+                  {photoUrls?.map((photoUrl, index) => (
+                    <Image
+                      key={index}
+                      objectFit='cover'
+                      src={photoUrl}
+                      alt={`Image ${index + 1}`}
+                      boxSize="100px"
+                      m={2}
+                    />
+                  ))}
+                </Flex> 
+                ) : (
+                  <>
+                  {photoUrls?.map((photoUrl, index) => (
+                    <Image
+                      key={index}
+                      objectFit='cover'
+                      src={photoUrl}
+                      alt={`Image ${index + 1}`}
+                    />
+                  ))}
+                </> 
+                )}
+                  <Box mt={4}>
+                    <Heading as="h4" mb={13} size="md">Comments</Heading>
+                    {comments.map(comment => (
+                      <div style={{display: 'flex'}}>
+                      <Avatar name='Segun Adebayo' src='https://bit.ly/sage-adebayo' />
+                      <Box
+                              borderRadius="lg"
+                              mb={3}
+                              p={3}
+                              ml={3}
+                              bg={bgValue}
+                              css={{ backdropFilter: 'blur(10px)' }}
+                            >
+                                                     <Text>{comment.text}</Text>
+
+                            </Box>
+                      </div>
+                             
+                            
+                    ))}
+                  </Box>
+                  <Flex mt={4}>
+                    <Input
+                      placeholder="Add a comment..."
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                    />
+                    <Button ml={2} onClick={() => handleAddComment(id)}>
+                      Send
+                    </Button>
+                  </Flex>
                 </CardBody>
-                <Image
-                  objectFit='cover'
-                  src={photoUrl}
-                  alt='Chakra UI'
-                />
                 <CardFooter
                   justify='space-between'
                   flexWrap='wrap'
@@ -262,9 +358,7 @@ const Works = () => {
                     },
                   }}
                 >
-                  <Button flex='1' variant='ghost' leftIcon={<ChatIcon />}>
-                    Comment
-                  </Button>
+                  
                 </CardFooter>
               </Card>  
             ))}

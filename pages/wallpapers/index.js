@@ -41,9 +41,9 @@ import Layout from '../../components/layouts/article'
 import questions from '../../q'
 
 const getRandomQuestion = () => {
-  const randomIndex = Math.floor(Math.random() * questions.length);
-  return questions[randomIndex];
-};
+  const randomIndex = Math.floor(Math.random() * questions.length)
+  return questions[randomIndex]
+}
 const Wallpapers = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -58,8 +58,7 @@ const Wallpapers = () => {
   const [newComment, setNewComment] = useState('')
   const [comments, setComments] = useState({})
   const fileInputRef = useRef(null)
-  const [question, setQuestion] = useState(null);
-
+  const [question, setQuestion] = useState(null)
 
   const router = useRouter()
   const downloadRef = useRef(null)
@@ -285,10 +284,10 @@ const Wallpapers = () => {
 
   const createQ = async () => {
     try {
-      let questions;
+      let questions
       questions = getRandomQuestion()
       setQuestion(questions)
-      console.log("lewat ga?", questions)
+      console.log('lewat ga?', questions)
       await db.collection('question').add({
         question: questions?.question,
         user: localStorage.getItem('user')
@@ -307,91 +306,83 @@ const Wallpapers = () => {
     console.log(question)
   }
 
- 
-
   return (
     <Layout title="Works">
       {/* <VoxelDog rotate={20} /> */}
 
       <Container>
         <Section>
-          <Button onClick={createQ}>
-            Generate Question
-          </Button>
-          <h1>
-            
-          </h1>
-          {notes.map(
-            ({ id, data: { question }, user, comments }) => (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  paddingBottom: '20px'
-                }}
+          <Button onClick={createQ}>Generate Question</Button>
+          <h1></h1>
+          {notes.map(({ id, data: { question }, user, comments }) => (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                paddingBottom: '20px'
+              }}
+            >
+              <Box
+                borderRadius="lg"
+                mb={6}
+                p={3}
+                width={1000}
+                bg={bgValue}
+                css={{ backdropFilter: 'blur(10px)' }}
               >
-                <Box
-                  borderRadius="lg"
-                  mb={6}
-                  p={3}
-                  width={1000}
-                  bg={bgValue}
-                  css={{ backdropFilter: 'blur(10px)' }}
-                >
-                  <Box mt={4}>
-                    <Heading as="h4" mb={13} size="md">
+                <Box mt={4}>
+                  <Heading as="h4" mb={13} size="md">
                     {question}
-                    </Heading>
-                    {comments.map(comment => (
-                      <div>
-                        <p style={{ padding: '10px', fontWeight: 'bold' }}>
-                          {comment?.user?.name}
-                        </p>
+                  </Heading>
+                  {comments.map(comment => (
+                    <div>
+                      <p style={{ padding: '10px', fontWeight: 'bold' }}>
+                        {comment?.user?.name}
+                      </p>
 
-                        <div style={{ display: 'flex' }}>
-                          <Avatar
-                            name={comment?.user?.name}
-                            src={comment?.user?.photoUrls[0]}
-                          />
-                          <Box
-                            borderRadius="lg"
-                            mb={3}
-                            p={3}
-                            ml={3}
-                            bg={bgValue}
-                            css={{ backdropFilter: 'blur(10px)' }}
-                          >
-                            <Text>{comment.text}</Text>
-                          </Box>
-                        </div>
+                      <div style={{ display: 'flex' }}>
+                        <Avatar
+                          name={comment?.user?.name}
+                          src={comment?.user?.photoUrls[0]}
+                        />
+                        <Box
+                          borderRadius="lg"
+                          mb={3}
+                          p={3}
+                          ml={3}
+                          bg={bgValue}
+                          css={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <Text>{comment.text}</Text>
+                        </Box>
                       </div>
-                    ))}
-                  </Box>
-                  <Flex mt={4}>
-                    <Textarea
-                      style={{
-                        width: '100%',
-                        minHeight: '50px',
-                        resize: 'none',
-                        overflow: 'hidden',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder="Add a comment..."
-                      value={newComment}
-                      resize={'horizon'}
-                      onChange={e => {
-                        adjustHeight(e.target)
-                        setNewComment(e.target.value)
-                      }}
-                    />
-                    <Button ml={2} onClick={() => handleAddComment(id)}>
-                      Send
-                    </Button>
-                  </Flex>
+                    </div>
+                  ))}
                 </Box>
-              </div>
-            )
-          )}
+                <Flex mt={4}>
+                  <Textarea
+                    style={{
+                      width: '100%',
+                      minHeight: '50px',
+                      resize: 'none',
+                      overflow: 'hidden',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    resize={'horizon'}
+                    onChange={e => {
+                      adjustHeight(e.target)
+                      setNewComment(e.target.value)
+                    }}
+                  />
+                  <Button ml={2} onClick={() => handleAddComment(id)}>
+                    Send
+                  </Button>
+                </Flex>
+              </Box>
+            </div>
+          ))}
         </Section>
       </Container>
     </Layout>

@@ -214,14 +214,21 @@ const Posts = () => {
               .collection('users')
               .doc(commentData.user)
               .get()
-            const commentUserData = commentUserSnapshot.data()
+              
+              const commentUserData = commentUserSnapshot.data()
+            console.log(commentUserData)
+
             return {
               id: commentDoc.id,
               ...commentDoc.data(),
               user: commentUserData
             }
+
           })
         )
+
+        console.log(commentsData)
+
 
         return {
           id: doc.id,
@@ -230,9 +237,20 @@ const Posts = () => {
           comments: commentsData
         }
       })
-
+    //   return datas.sort((a, b) => {
+    //     const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+    //     const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+    //     return dateA - dateB;
+    // });
       const resolvedNotes = await Promise.all(notesData)
-      setNotes(resolvedNotes)
+      console.log()
+
+      console.log(notesData,resolvedNotes )
+      setNotes(resolvedNotes.sort((a, b) => {
+        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+        return dateB - dateA;
+    }))
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch notes:', error)
@@ -515,7 +533,7 @@ const Posts = () => {
         </Heading> */}
 
       {/* <SimpleGrid columns={[1, 1, 2]} gap={6}> */}
-      <Section key={1}>
+      <Section key={description}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <Box
             borderRadius="lg"
@@ -610,7 +628,7 @@ const Posts = () => {
             }
 
             return (
-              <div key={1} style={{ display: 'flex', justifyContent: 'center' }}>
+              <div key={id} style={{ display: 'flex', justifyContent: 'center' }}>
                 <Card maxW="md" key={id} pb={10} mb={10}>
                   <CardHeader>
                     <Flex alignItems="center" justifyContent="space-between">
@@ -784,9 +802,11 @@ const Posts = () => {
                           Remaining Target:{' '}
                           <span
                             style={{ fontWeight: 'bolder' }}
-                          >{`Rp. ${remainingTarget.toLocaleString('id-ID', {
-                            maximumFractionDigits: 3
-                          })}`}</span>
+                          >{`Rp. ${remainingTarget.toLocaleString(
+                            'id-ID',
+                            {
+                              maximumFractionDigits: 3
+                            })}`}</span>
                         </h4>
                       ) : (
                         <></>

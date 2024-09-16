@@ -63,6 +63,7 @@ const Wallpapers = () => {
     } else {
       setUser(getName);
     }
+    fetchNotes().catch(console.error);
   }, [user, notes])
 
   const fetchNotes = async () => {
@@ -266,7 +267,7 @@ const Wallpapers = () => {
                           <Flex>
                             <Avatar
                               name={comment?.user?.name}
-                              src={comment?.user?.photoUrls[0]}
+                              src={comment?.user?.photoUrls}
                             />
                             <Box
                               borderRadius="lg"

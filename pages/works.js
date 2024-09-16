@@ -219,7 +219,11 @@ const Works = () => {
       })
 
       const resolvedNotes = await Promise.all(notesData)
-      setNotes(resolvedNotes)
+      setNotes(resolvedNotes.sort((a, b) => {
+        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+        return dateB - dateA;
+    }))
     } catch (error) {
       console.error('Failed to fetch notes:', error)
     }

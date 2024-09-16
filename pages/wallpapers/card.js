@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { db, storage } from '../../firebase';
+import { db } from '../../firebase';
   import { 
     Box, 
     useColorModeValue, 
     Button,
-    Spinner,
-    AlertDialog,
-    AlertDialogOverlay,
-    AlertDialogContent,
-    AlertDialogHeader
    } from '@chakra-ui/react';
 
 // Definisikan keyframes untuk animasi shuffle

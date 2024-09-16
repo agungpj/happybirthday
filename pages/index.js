@@ -1,74 +1,22 @@
 import NextLink from 'next/link'
 import {
-  Link,
   Container,
-  Heading,
   Box,
-  SimpleGrid,
   Button,
-  List,
-  ListItem,
-  Tab,
-  TabList,
-  Tabs,
-  TabPanel,
-  TabPanels,
   useColorModeValue,
-  FormControl,
-  FormLabel,
   Input,
-  Textarea,
-  ButtonGroup,
   Text,
-  Image,
   useDisclosure,
   Modal,
   ModalBody,
   ModalOverlay,
   ModalContent,
   ModalHeader,
-  ModalCloseButton,
-  ModalFooter,
   Alert,
-  AlertIcon,
 } from '@chakra-ui/react'
 import Layout from '../components/layouts/article'
 import { useState, useEffect, useRef } from 'react'
-import { db, storage } from '../firebase' // Ensure storage is imported
 import VoxelDog from '../components/voxel-dog'
-import styled, { keyframes } from 'styled-components';
-const shine = keyframes`
-  0% {
-    background-position: 0;
-  }
-  60% {
-    background-position: 180px;
-  }
-  100% {
-    background-position: 180px;
-  }
-`;
-
-const ButtonShine = styled.a`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 121px 48px;
-  color: #fff;
-  background: linear-gradient(to right, #E4D6F5 0, #C51077 10%, #E4D6F5 20%);
-  background-position: 0;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: ${shine} 3s infinite linear;
-  animation-fill-mode: forwards;
-  -webkit-text-size-adjust: none;
-  font-weight: 600;
-  font-size: 20px;
-  text-decoration: none;
-  white-space: nowrap;
-  font-family: "Poppins", sans-serif;
-`;
 
 const Home = () => {
   const [name, setName] = useState('')
@@ -76,7 +24,6 @@ const Home = () => {
   const finalRef = useRef(null)
   const [alert, setAlert] = useState(false)
   const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
-  const [rotate, setRotate] = useState(0)
   const [user, setUser] = useState(null)
 
   useEffect(() => {
@@ -89,15 +36,10 @@ const Home = () => {
   }, [user])
 
   const handleEnter = () => {
-    
-
     if(name == 'nimasayu') {
-      // if() 
-      // setRotate(9)
       onOpen()
       localStorage.setItem('user', 'KCLqkpnmxvvpay00453g');
     } else if (name == 'youknowme') {
-      setRotate(9)
       onOpen()
       localStorage.setItem('user', 'd9B8lkubjDVyIhCFVOie');
     } else {
@@ -126,7 +68,6 @@ const Home = () => {
               >
                 <Input
                   placeholder="Enter name"
-                  // value={noteTitle}
                   onChange={e => setName(e.target.value)}
                 />
               </Box>

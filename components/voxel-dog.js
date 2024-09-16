@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { loadGLTFModel } from '../lib/model'
-import { DogSpinner, DogContainer } from './voxel-dog-loader'
+import { DogContainer } from './voxel-dog-loader'
 
 function easeOutCirc(x) {
   return Math.sqrt(1 - Math.pow(x - 1, 4))
@@ -11,7 +11,6 @@ function easeOutCirc(x) {
 const VoxelDog = (props) => {
   const { rotate } = props;
   const refContainer = useRef()
-  const [loading, setLoading] = useState(true)
   const refRenderer = useRef()
   const urlDogGLB = (process.env.NODE_ENV === 'production' ? 'https://craftzdog.global.ssl.fastly.net/homepage' : '') + '/model1.glb'
   const [rotasi, setRotasi] = useState(0)
@@ -79,7 +78,6 @@ const VoxelDog = (props) => {
         castShadow: false
       }).then(() => {
         animate()
-        setLoading(false)
       })
 
       let req = null
@@ -93,7 +91,6 @@ const VoxelDog = (props) => {
         if (frame <= 100) {
           const p = initialCameraPosition
           // Adjusted position to move the object to the rightconst rotSpeed = -easeOutCirc(frame / 100) * Math.PI * rotate
-          const rotSpeed = -easeOutCirc(frame / 100) * Math.PI * rotate
 
           camera.position.y = 4
           camera.position.x = 

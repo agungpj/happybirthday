@@ -1,7 +1,6 @@
 import {
   Container,
   Heading,
-  SimpleGrid,
   CardHeader,
   Flex,
   Avatar,
@@ -31,12 +30,11 @@ import {
 } from '@chakra-ui/react'
 import Layout from '../components/layouts/article'
 import Section from '../components/section'
-import { AttachmentIcon, ChatIcon } from '@chakra-ui/icons'
+import { AttachmentIcon } from '@chakra-ui/icons'
 import { BsThreeDotsVertical } from 'react-icons/bs'
 import { useEffect, useState, useRef } from 'react'
 import { db, storage } from '../firebase'
 import VoxelDog from '../components/voxel-dog'
-import { redirect } from 'next/dist/server/api-utils'
 import { useRouter } from 'next/router'
 
 const Works = () => {
@@ -51,11 +49,9 @@ const Works = () => {
   const [modalTitle, setModalTitle] = useState('')
   const [modalMessage, setModalMessage] = useState('')
   const [newComments, setNewComments] = useState({})
-  const [comments, setComments] = useState({})
   const fileInputRef = useRef(null)
   const [user, setUser] = useState(null)
 
-  const router = useRouter()
   const downloadRef = useRef(null)
   const OverlayOne = () => (
     <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
@@ -117,6 +113,7 @@ const Works = () => {
             ...prevProgress,
             [file.name]: progress
           }))
+          console.log(success, uploadProgress)
         },
         error => {
           console.error('Upload failed:', error)

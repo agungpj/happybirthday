@@ -30,12 +30,11 @@ import {
   Center
 } from '@chakra-ui/react'
 import { useEffect, useState, useRef } from 'react'
-import { db, storage } from '../../firebase'
+import { db } from '../../firebase'
 import { useRouter } from 'next/router'
 import Layout from '../../components/layouts/article'
 import questions from '../../q'
 import VoxelDog from '../../components/voxel-dog'
-import Section from '../../components/section'
 import ShuffleCards from './card'
 import { BsThreeDotsVertical } from 'react-icons/bs'
 // import {
@@ -49,30 +48,17 @@ import { BsThreeDotsVertical } from 'react-icons/bs'
 //   AlertDialogHeader
 //  } from '@chakra-ui/react';
 
-const getRandomQuestion = () => {
-  const randomIndex = Math.floor(Math.random() * questions.length)
-  return questions[randomIndex]
-}
+
 
 const Wallpapers = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [notes, setNotes] = useState([])
-  const [description, setDescription] = useState('')
-  const [images, setImages] = useState([])
-  const [success, setSuccess] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState({})
-  const [imagePreviews, setImagePreviews] = useState([])
   const [modalTitle, setModalTitle] = useState('')
   const [modalMessage, setModalMessage] = useState('')
   const [comments, setComments] = useState({})
-  const fileInputRef = useRef(null)
-  const [question, setQuestion] = useState(null)
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
-
-  const router = useRouter()
-  const downloadRef = useRef(null)
 
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
@@ -168,12 +154,6 @@ const Wallpapers = () => {
 
   const handleCommentChange = (noteId, value) => {
     setComments({ ...comments, [noteId]: value })
-  }
-
-  const openModal = (title, message) => {
-    setModalTitle(title)
-    setModalMessage(message)
-    onOpen()
   }
 
   const handleDelete = async (id, photoUrls) => {

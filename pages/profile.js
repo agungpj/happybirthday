@@ -1,16 +1,7 @@
 import {
     Container,
-    Heading,
-    SimpleGrid,
-    CardHeader,
-    Flex,
-    Avatar,
     Box,
-    IconButton,
-    CardFooter,
-    Card,
     Text,
-    CardBody,
     Image,
     Button,
     useColorModeValue,
@@ -23,14 +14,7 @@ import {
     useDisclosure,
     ModalCloseButton,
     ModalOverlay,
-    Menu,
-    MenuButton,
-    MenuList,
-    MenuItem,
-    Alert,
     VStack, 
-    HStack,
-    Spacer, 
     Center,
     Spinner,
     AlertDialog,
@@ -42,53 +26,28 @@ import {
   } from '@chakra-ui/react'
   import Layout from '../components/layouts/article'
   import Section from '../components/section'
-  import { AttachmentIcon, ChatIcon } from '@chakra-ui/icons'
-  import { BsThreeDotsVertical } from 'react-icons/bs'
   import { useEffect, useState, useRef } from 'react'
   import { db, storage } from '../firebase'
-  import firebase from 'firebase'
-  import CurrencyInput from 'react-currency-input-field'
-  import { AiTwotoneShopping } from 'react-icons/ai'
   import VoxelDog from '../components/voxel-dog'
   import imageCompression from 'browser-image-compression'
   
   const Profile = () => {
     const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
     const { isOpen, onOpen, onClose } = useDisclosure()
-    const [notes, setNotes] = useState([])
-    const [description, setDescription] = useState('')
-    const [goals, setGoals] = useState(0)
-    const [progress, setProgress] = useState([])
     const [images, setImages] = useState([])
     const [success, setSuccess] = useState(false)
     const [uploadProgress, setUploadProgress] = useState({})
     const [imagePreviews, setImagePreviews] = useState([])
     const [modalTitle, setModalTitle] = useState('')
     const [modalMessage, setModalMessage] = useState('')
-    const [newComments, setNewComments] = useState({});
-    const [comments, setComments] = useState({})
-    const [openModals, setOpenModals] = useState(false)
-    const [alert, setAlert] = useState(false)
     const fileInputRef = useRef(null)
-    const [ids, setIds] = useState('')
-    const [commentImages, setCommentImages] = useState({});
-    const commentFileInputRef = useRef(null);
-    const downloadRef = useRef(null);
     const [loading, setLoading] = useState(false)
-    const [imgPreview, setImgPreview] = useState([])
-    const [imageUrl, setImgUrl] = useState([])
     const [tempName, setTempName] = useState("");
     const [user, setUser] = useState({
         name: "",
         photo: ""
     })
     const [users, setUsers] = useState(null)
-    const [tempImageUrl, setTempImageUrl] = useState("");
-    const [imageFile, setImageFile] = useState(null);
-  
-    const OverlayOne = () => (
-      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
-    )
   
     useEffect(() => {
         const getName = localStorage.getItem('user') || null;
@@ -162,6 +121,7 @@ import {
                 ...prevProgress,
                 [file.name]: progress
               }))
+              console.log(uploadProgress)
             },
             error => {
               console.error('Upload failed:', error)
@@ -201,6 +161,7 @@ import {
             await Promise.all(deletePromises)
           }
           setSuccess(true)
+          console.log(success)
           openModal('Success Upload!', 'Profile has been updated')
           setImages([])
           setImagePreviews([])
@@ -216,17 +177,10 @@ import {
         }
       }
     
-      const handleButtonClick = () => {
-        fileInputRef.current.click()
-      }
-    
-      const handleImageClick = () => {
-        fileInputRef.current.click()
-      }
-    
       const openModal = (title, message) => {
         setModalTitle(title)
         setModalMessage(message)
+        console.log(modalMessage, modalMessage)
         onOpen()
       }
     

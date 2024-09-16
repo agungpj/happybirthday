@@ -1,7 +1,5 @@
 import {
-  Container,
   Heading,
-  SimpleGrid,
   CardHeader,
   Flex,
   Avatar,
@@ -19,9 +17,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   useDisclosure,
-  ModalCloseButton,
   ModalOverlay,
   Menu,
   MenuButton,
@@ -40,13 +36,12 @@ import {
 } from '@chakra-ui/react'
 import Layout from '../components/layouts/article'
 import Section from '../components/section'
-import { AttachmentIcon, ChatIcon } from '@chakra-ui/icons'
+import { AttachmentIcon } from '@chakra-ui/icons'
 import { BsThreeDotsVertical } from 'react-icons/bs'
 import { useEffect, useState, useRef } from 'react'
 import { db, storage } from '../firebase'
 import firebase from 'firebase'
 import CurrencyInput from 'react-currency-input-field'
-import { AiTwotoneShopping } from 'react-icons/ai'
 import VoxelDog from '../components/voxel-dog'
 import imageCompression from 'browser-image-compression'
 
@@ -58,27 +53,19 @@ const Posts = () => {
   const [goals, setGoals] = useState(0)
   const [progress, setProgress] = useState([])
   const [images, setImages] = useState([])
-  const [success, setSuccess] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({})
   const [imagePreviews, setImagePreviews] = useState([])
   const [modalTitle, setModalTitle] = useState('')
   const [modalMessage, setModalMessage] = useState('')
   const [newComments, setNewComments] = useState({})
-  const [comments, setComments] = useState({})
   const [openModals, setOpenModals] = useState(false)
   const [alert, setAlert] = useState(false)
   const fileInputRef = useRef(null)
   const [ids, setIds] = useState('')
   const [commentImages, setCommentImages] = useState({})
-  const commentFileInputRef = useRef(null)
-  const downloadRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [imgPreview, setImgPreview] = useState([])
   const [user, setUser] = useState(null)
-
-  const OverlayOne = () => (
-    <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
-  )
 
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
@@ -137,6 +124,7 @@ const Posts = () => {
             ...prevProgress,
             [file.name]: progress
           }))
+          console.log(uploadProgress)
         },
         error => {
           console.error('Upload failed:', error)
@@ -160,14 +148,12 @@ const Posts = () => {
         user: localStorage.getItem('user'),
         date: new Date()
       })
-      setSuccess(true)
       openModal('Success Upload!', 'Mading telah ditambahkan')
       setDescription('')
       setGoals(0)
       setImages([])
       setImagePreviews([])
       setTimeout(() => {
-        setSuccess(false)
       }, 2000)
       fetchNotes()
     } catch (error) {
@@ -192,6 +178,7 @@ const Posts = () => {
       fetchNotes()
     } catch (error) {
       alert(error.message)
+      setAlert(error.message)
     }
   }
 
@@ -262,8 +249,9 @@ const Posts = () => {
 
   const openModal = (title, message) => {
     setModalTitle(title)
+    console.log(modalTitle, modalMessage)
     setModalMessage(message)
-    onOpen()
+    // onOpen()
   }
 
   const handleAddComment = async noteId => {
@@ -308,22 +296,7 @@ const Posts = () => {
     }
   }
 
-  const handleChange = e => {
-    let inputValue = e.target.value
-
-    // Hilangkan karakter selain angka
-    inputValue = inputValue.replace(/\D/g, '')
-
-    // Format angka ke dalam format Rupiah
-    if (inputValue.length > 0) {
-      inputValue = new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR'
-      }).format(inputValue)
-    }
-
-    setGoals(inputValue)
-  }
+  
 
   const handleUpdate = async () => {
     try {
@@ -342,7 +315,6 @@ const Posts = () => {
           progress: firebase.firestore.FieldValue.arrayUnion(p)
         })
       onClose()
-      setSuccess(true)
       setIds('')
       // await db.collection('mading').doc(id).updat()
       fetchNotes()
@@ -355,6 +327,7 @@ const Posts = () => {
     onOpen()
     setIds(id)
     setOpenModals(true)
+    console.log(openModals)
   }
 
   const handleCommentImageUpload = async (noteId, event) => {
@@ -542,7 +515,7 @@ const Posts = () => {
         </Heading> */}
 
       {/* <SimpleGrid columns={[1, 1, 2]} gap={6}> */}
-      <Section>
+      <Section key={1}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <Box
             borderRadius="lg"
@@ -960,6 +933,5 @@ const Posts = () => {
     </Layout>
   )
 }
-
 export default Posts
 export { getServerSideProps } from '../components/chakra'

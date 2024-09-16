@@ -50,7 +50,7 @@ import { BsThreeDotsVertical } from 'react-icons/bs'
 
 const Wallpapers = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen, onClose } = useDisclosure()
   const [notes, setNotes] = useState([])
   const [comments, setComments] = useState({})
   const [user, setUser] = useState(null)
@@ -62,9 +62,8 @@ const Wallpapers = () => {
       window.location.href = '/';
     } else {
       setUser(getName);
-      fetchNotes().catch(console.error);
     }
-  }, [user, notes, fetchNotes])
+  }, [user, notes])
 
   const fetchNotes = async () => {
     try {

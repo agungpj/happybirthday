@@ -214,21 +214,14 @@ const Posts = () => {
               .collection('users')
               .doc(commentData.user)
               .get()
-              
-              const commentUserData = commentUserSnapshot.data()
-            console.log(commentUserData)
-
+            const commentUserData = commentUserSnapshot.data()
             return {
               id: commentDoc.id,
               ...commentDoc.data(),
               user: commentUserData
             }
-
           })
         )
-
-        console.log(commentsData)
-
 
         return {
           id: doc.id,
@@ -237,20 +230,9 @@ const Posts = () => {
           comments: commentsData
         }
       })
-    //   return datas.sort((a, b) => {
-    //     const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
-    //     const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
-    //     return dateA - dateB;
-    // });
-      const resolvedNotes = await Promise.all(notesData)
-      console.log()
 
-      console.log(notesData,resolvedNotes )
-      setNotes(resolvedNotes.sort((a, b) => {
-        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
-        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
-        return dateB - dateA;
-    }))
+      const resolvedNotes = await Promise.all(notesData)
+      setNotes(resolvedNotes)
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch notes:', error)
@@ -397,7 +379,7 @@ const Posts = () => {
     }
   }
 
-  async function handleImageUpload(event) {
+  async function handleImageUpload(event, func) {
     const files = Array.from(event.target.files)
     const compressedFiles = []
 
@@ -533,7 +515,7 @@ const Posts = () => {
         </Heading> */}
 
       {/* <SimpleGrid columns={[1, 1, 2]} gap={6}> */}
-      <Section key={description}>
+      <Section key={1}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <Box
             borderRadius="lg"
@@ -621,14 +603,14 @@ const Posts = () => {
             let remainingTarget = target
             {
               progress
-                ? progress?.map((item) => {
+                ? progress?.map((item, index) => {
                     return (remainingTarget -= item.progress)
                   })
                 : null
             }
 
             return (
-              <div key={id} style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <Card maxW="md" key={id} pb={10} mb={10}>
                   <CardHeader>
                     <Flex alignItems="center" justifyContent="space-between">
@@ -802,11 +784,9 @@ const Posts = () => {
                           Remaining Target:{' '}
                           <span
                             style={{ fontWeight: 'bolder' }}
-                          >{`Rp. ${remainingTarget.toLocaleString(
-                            'id-ID',
-                            {
-                              maximumFractionDigits: 3
-                            })}`}</span>
+                          >{`Rp. ${remainingTarget.toLocaleString('id-ID', {
+                            maximumFractionDigits: 3
+                          })}`}</span>
                         </h4>
                       ) : (
                         <></>
@@ -827,7 +807,7 @@ const Posts = () => {
                           <HStack spacing={3} mb={2}>
                             <Avatar
                               name={comment?.user?.name}
-                              src={comment?.user?.photoUrls}
+                              src={comment?.user?.photoUrls[0]}
                               size="sm"
                             />
                             <VStack align="start" spacing={0}>

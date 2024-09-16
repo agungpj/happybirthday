@@ -808,7 +808,7 @@ const Posts = () => {
                           <HStack spacing={3} mb={2}>
                             <Avatar
                               name={comment?.user?.name}
-                              src={comment?.user?.photoUrls[0]}
+                              src={comment?.user?.photoUrls}
                               size="sm"
                             />
                             <VStack align="start" spacing={0}>

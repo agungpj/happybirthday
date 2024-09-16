@@ -29,11 +29,9 @@ import {
   AlertDialogHeader,
   Center
 } from '@chakra-ui/react'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { db } from '../../firebase'
-import { useRouter } from 'next/router'
 import Layout from '../../components/layouts/article'
-import questions from '../../q'
 import VoxelDog from '../../components/voxel-dog'
 import ShuffleCards from './card'
 import { BsThreeDotsVertical } from 'react-icons/bs'
@@ -54,8 +52,6 @@ const Wallpapers = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [notes, setNotes] = useState([])
-  const [modalTitle, setModalTitle] = useState('')
-  const [modalMessage, setModalMessage] = useState('')
   const [comments, setComments] = useState({})
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -68,7 +64,7 @@ const Wallpapers = () => {
       setUser(getName);
       fetchNotes().catch(console.error);
     }
-  }, [user, notes])
+  }, [user, notes, fetchNotes])
 
   const fetchNotes = async () => {
     try {
@@ -131,7 +127,7 @@ const Wallpapers = () => {
     }
   }
 
-  const handleAddComment = async (noteId, noteComments) => {
+  const handleAddComment = async (noteId) => {
     const newComment = comments[noteId]
     if (newComment.trim() === '') return
 
@@ -156,7 +152,7 @@ const Wallpapers = () => {
     setComments({ ...comments, [noteId]: value })
   }
 
-  const handleDelete = async (id, photoUrls) => {
+  const handleDelete = async (id) => {
     try {
       await db.collection('question').doc(id).delete()
       fetchNotes()
@@ -227,8 +223,8 @@ const Wallpapers = () => {
 
         </Box>
             {notes.map(
-              ({ id, data: { question }, user, comments: noteComments }) => (
-                <div style={{ display: 'flex' }}>
+              ({ id, data: { question }, comments: noteComments }) => (
+                <div key={id} style={{ display: 'flex' }}>
                   <Card
                     key={id}
                     borderRadius="lg"
@@ -315,9 +311,9 @@ const Wallpapers = () => {
           <Modal isOpen={isOpen} onClose={onClose}>
             <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
             <ModalContent>
-              <ModalHeader>{modalTitle}</ModalHeader>
+              <ModalHeader></ModalHeader>
               <ModalCloseButton />
-              <ModalBody>{modalMessage}</ModalBody>
+              <ModalBody></ModalBody>
               <ModalFooter>
                 <Button onClick={onClose}>Close</Button>
               </ModalFooter>

@@ -29,11 +29,11 @@ const Home = () => {
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
     setUser(getName)
-    if(!user) {
+    if (!user) {
       onOpen()
     }
-    getName == 'KCLqkpnmxvvpay00453g' || getName == 'd9B8lkubjDVyIhCFVOie' ? onOpen() : onClose()
-  }, [user])
+    getName === 'KCLqkpnmxvvpay00453g' || getName === 'd9B8lkubjDVyIhCFVOie' ? onOpen() : onClose()
+  }, [user, onOpen, onClose]) // Tambahkan onOpen dan onClose di sini
 
   const handleEnter = () => {
     if(name == 'nimasayu') {

@@ -180,11 +180,11 @@ import {
       const openModal = (title, message) => {
         setModalTitle(title)
         setModalMessage(message)
-        console.log(modalMessage, modalMessage)
+        console.log(modalTitle, modalMessage)
         onOpen()
       }
     
-      async function handleImageUpload(event, func) {
+      async function handleImageUpload(event) {
         const files = Array.from(event.target.files)
         const compressedFiles = []
     

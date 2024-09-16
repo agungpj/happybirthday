@@ -35,7 +35,6 @@ import { BsThreeDotsVertical } from 'react-icons/bs'
 import { useEffect, useState, useRef } from 'react'
 import { db, storage } from '../firebase'
 import VoxelDog from '../components/voxel-dog'
-import { useRouter } from 'next/router'
 
 const Works = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
@@ -372,6 +371,7 @@ const Works = () => {
               comments
             }) => (
               <div
+                key={id}
                 style={{
                   display: 'flex',
                   justifyContent: 'center',
@@ -452,6 +452,7 @@ const Works = () => {
                       <>
                         {photoUrls?.map((photoUrl, index) => (
                           <Flex
+                            key={index}
                             justifyContent="center"
                             alignItems="center"
                             mt={4}
@@ -473,7 +474,7 @@ const Works = () => {
                         Comments
                       </Heading>
                       {comments.map(comment => (
-                        <div>
+                        <div key={comment?.user?.name}>
                           <p style={{ padding: '10px', fontWeight: 'bold' }}>
                             {comment?.user?.name}
                           </p>

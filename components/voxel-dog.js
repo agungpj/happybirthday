@@ -4,16 +4,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { loadGLTFModel } from '../lib/model'
 import { DogContainer } from './voxel-dog-loader'
 
-function easeOutCirc(x) {
-  return Math.sqrt(1 - Math.pow(x - 1, 4))
-}
 
 const VoxelDog = (props) => {
   const { rotate } = props;
   const refContainer = useRef()
   const refRenderer = useRef()
   const urlDogGLB = (process.env.NODE_ENV === 'production' ? 'https://craftzdog.global.ssl.fastly.net/homepage' : '') + '/model1.glb'
-  const [rotasi, setRotasi] = useState(0)
   
 
  
@@ -111,7 +107,7 @@ const VoxelDog = (props) => {
         renderer.dispose()
       }
     }
-  }, [rotate, rotasi])
+  }, [rotate])
 
   useEffect(() => {
     window.addEventListener('resize', handleWindowResize, false)

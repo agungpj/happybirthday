@@ -379,7 +379,7 @@ const Posts = () => {
     }
   }
 
-  async function handleImageUpload(event, func) {
+  async function handleImageUpload(event) {
     const files = Array.from(event.target.files)
     const compressedFiles = []
 
@@ -603,14 +603,14 @@ const Posts = () => {
             let remainingTarget = target
             {
               progress
-                ? progress?.map((item, index) => {
+                ? progress?.map((item) => {
                     return (remainingTarget -= item.progress)
                   })
                 : null
             }
 
             return (
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div key={1} style={{ display: 'flex', justifyContent: 'center' }}>
                 <Card maxW="md" key={id} pb={10} mb={10}>
                   <CardHeader>
                     <Flex alignItems="center" justifyContent="space-between">

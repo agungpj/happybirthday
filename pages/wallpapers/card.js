@@ -185,7 +185,6 @@ const Card = styled.div`
 const CardShuffler = ({card}) => {
   const [isAnimated, setIsAnimated] = useState(false);
   const [currentQuestions, setCurrentQuestions] = useState([...questions]);
-  const [question, setQuestion] = useState(null);
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200');
 
   
@@ -196,7 +195,7 @@ useEffect(() => {
   const fetch = async () => {
     try {
       const snapshots = await db.collection('question').get();
-      snapshots.docs.map(async (doc) => { 
+      snapshots.docs.map(async () => { 
       })
     } catch (e) {
       console.log(e)
@@ -227,7 +226,6 @@ useEffect(() => {
 
   const createQ = async () => {
     try {
-      // setQuestion(questions);
       
       await db.collection('question').add({
         question: currentQuestions[0].question,

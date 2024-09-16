@@ -231,7 +231,6 @@ useEffect(() => {
         question: currentQuestions[0].question,
         user: localStorage.getItem('user'),
       });
-      setSuccess(true);
       fetchNotes();
     } catch (error) {
       console.error('Error adding document:', error);

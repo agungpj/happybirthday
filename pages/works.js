@@ -482,7 +482,7 @@ const Works = () => {
                           <div style={{ display: 'flex' }}>
                             <Avatar
                               name={comment?.user?.name}
-                              src={comment?.user?.photoUrls[0]}
+                              src={comment?.user?.photoUrls}
                             />
                             <Box
                               borderRadius="lg"

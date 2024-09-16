@@ -9,7 +9,8 @@ const VoxelDog = (props) => {
   const { rotate } = props;
   const refContainer = useRef()
   const refRenderer = useRef()
-  const urlDogGLB = (process.env.NODE_ENV === 'production' ? 'https://craftzdog.global.ssl.fastly.net/homepage' : '') + '/model1.glb'
+  // const urlDogGLB = (process.env.NODE_ENV === 'production' ? 'https://craftzdog.global.ssl.fastly.net/homepage' : '') + '/model1.glb'
+  const urlDogGLB = '/model1.glb'
   
 
  

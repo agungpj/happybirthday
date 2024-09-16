@@ -1,0 +1,385 @@
+import {
+    Container,
+    Heading,
+    SimpleGrid,
+    CardHeader,
+    Flex,
+    Avatar,
+    Box,
+    IconButton,
+    CardFooter,
+    Card,
+    Text,
+    CardBody,
+    Image,
+    Button,
+    useColorModeValue,
+    Input,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    useDisclosure,
+    ModalCloseButton,
+    ModalOverlay,
+    Menu,
+    MenuButton,
+    MenuList,
+    MenuItem,
+    Alert,
+    VStack, 
+    HStack,
+    Spacer, 
+    Center,
+    Spinner,
+    AlertDialog,
+    AlertDialogOverlay,
+    AlertDialogContent,
+    AlertDialogHeader,
+    FormControl,
+    FormLabel
+  } from '@chakra-ui/react'
+  import Layout from '../components/layouts/article'
+  import Section from '../components/section'
+  import { AttachmentIcon, ChatIcon } from '@chakra-ui/icons'
+  import { BsThreeDotsVertical } from 'react-icons/bs'
+  import { useEffect, useState, useRef } from 'react'
+  import { db, storage } from '../firebase'
+  import firebase from 'firebase'
+  import CurrencyInput from 'react-currency-input-field'
+  import { AiTwotoneShopping } from 'react-icons/ai'
+  import VoxelDog from '../components/voxel-dog'
+  import imageCompression from 'browser-image-compression'
+  
+  const Profile = () => {
+    const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
+    const { isOpen, onOpen, onClose } = useDisclosure()
+    const [notes, setNotes] = useState([])
+    const [description, setDescription] = useState('')
+    const [goals, setGoals] = useState(0)
+    const [progress, setProgress] = useState([])
+    const [images, setImages] = useState([])
+    const [success, setSuccess] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState({})
+    const [imagePreviews, setImagePreviews] = useState([])
+    const [modalTitle, setModalTitle] = useState('')
+    const [modalMessage, setModalMessage] = useState('')
+    const [newComments, setNewComments] = useState({});
+    const [comments, setComments] = useState({})
+    const [openModals, setOpenModals] = useState(false)
+    const [alert, setAlert] = useState(false)
+    const fileInputRef = useRef(null)
+    const [ids, setIds] = useState('')
+    const [commentImages, setCommentImages] = useState({});
+    const commentFileInputRef = useRef(null);
+    const downloadRef = useRef(null);
+    const [loading, setLoading] = useState(false)
+    const [imgPreview, setImgPreview] = useState([])
+    const [imageUrl, setImgUrl] = useState([])
+    const [tempName, setTempName] = useState("");
+    const [user, setUser] = useState({
+        name: "",
+        photo: ""
+    })
+    const [users, setUsers] = useState(null)
+    const [tempImageUrl, setTempImageUrl] = useState("");
+    const [imageFile, setImageFile] = useState(null);
+  
+    const OverlayOne = () => (
+      <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+    )
+  
+    useEffect(() => {
+        const getName = localStorage.getItem('user') || null;
+        if (!getName) {
+          window.location.href = '/';
+        } else {
+          setUsers(getName);
+          fetchUser().catch(console.error);
+        }
+      fetchUser().catch(console.error)
+    }, [users])
+
+    const fetchUser = async () => {
+        try {
+          setLoading(true)
+          const userSnapshot = await db.collection('users').doc(localStorage.getItem('user')).get();
+          const userData = userSnapshot.data();
+          setUser({
+              name: userData.name,
+              photo: userData.photoUrls
+          })
+          setLoading(false)
+
+        } catch (error) {
+          console.error('Failed to fetch user:', error);
+        }
+    };
+
+    const handleFileChange = event => {
+        const files = Array.from(event)
+        if (files.length) {
+          setImages(files)
+          const previews = files.map(file => URL.createObjectURL(file))
+          setImagePreviews(previews)
+        }
+      }
+    
+      const handleSubmit = () => {
+        if (images.length > 0) {
+          uploadImages(images)
+        } else {
+          // If no images are selected, directly call updateProfile without uploading images
+          updateProfile(user.photoUrls)
+        }
+      }
+    
+      const uploadImages = async files => {
+        if (files.length === 0) return
+    
+        const promises = files.map(file => uploadImage(file))
+        try {
+          const urls = await Promise.all(promises)
+          updateProfile(urls)
+        } catch (error) {
+          console.error('Upload failed:', error)
+        }
+      }
+    
+      const uploadImage = file => {
+        return new Promise((resolve, reject) => {
+          const filename = `${Date.now()}-${file.name}`
+          const storageRef = storage.ref().child(`images/${filename}`)
+          const uploadTask = storageRef.put(file)
+    
+          uploadTask.on(
+            'state_changed',
+            snapshot => {
+              const progress =
+                (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+              setUploadProgress(prevProgress => ({
+                ...prevProgress,
+                [file.name]: progress
+              }))
+            },
+            error => {
+              console.error('Upload failed:', error)
+              reject(error)
+            },
+            async () => {
+              const downloadURL = await uploadTask.snapshot.ref.getDownloadURL()
+              resolve(downloadURL)
+            }
+          )
+        })
+      }
+
+      const getImagePathFromUrl = url => {
+        const baseUrl =
+          'https://firebasestorage.googleapis.com/v0/b/agung2-apps.appspot.com/o/'
+        const path = url.replace(baseUrl, '').split('?')[0]
+        return decodeURIComponent(path)
+      }
+    
+      const updateProfile = async photoUrls => {
+        try {
+            setLoading(true)
+          await db.collection('users').doc(localStorage.getItem('user')).update({
+            name: tempName !== "" ? tempName : user.name,
+            photoUrls: photoUrls !== undefined ? photoUrls : user.photo
+          });
+          // Delete old images from storage
+        
+          if (photoUrls) {
+            const storageRef = storage.ref()
+            const deletePromises = user.photo.map(url => {
+              const path = getImagePathFromUrl(url)
+              const imageRef = storageRef.child(path)
+              return imageRef.delete()
+            })
+            await Promise.all(deletePromises)
+          }
+          setSuccess(true)
+          openModal('Success Upload!', 'Profile has been updated')
+          setImages([])
+          setImagePreviews([])
+          setTimeout(() => {
+            setSuccess(false)
+          }, 2000)
+          onClose()
+          fetchUser()
+          setLoading(false)
+        } catch (error) {
+          console.error('Error updating profile:', error)
+          openModal('Error', 'Failed to update profile. Please try again.')
+        }
+      }
+    
+      const handleButtonClick = () => {
+        fileInputRef.current.click()
+      }
+    
+      const handleImageClick = () => {
+        fileInputRef.current.click()
+      }
+    
+      const openModal = (title, message) => {
+        setModalTitle(title)
+        setModalMessage(message)
+        onOpen()
+      }
+    
+      async function handleImageUpload(event, func) {
+        const files = Array.from(event.target.files)
+        const compressedFiles = []
+    
+        for (let i = 0; i < files.length; i++) {
+          const imageFile = files[i]
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true
+          }
+          try {
+            setLoading(true)
+            const compressedFile = await imageCompression(imageFile, options)
+            compressedFiles.push(compressedFile)
+            setLoading(false)
+          } catch (error) {
+            console.log(error)
+          }
+        }
+    
+        handleFileChange(compressedFiles)
+      }
+
+  return (
+    <Layout title="Profile">
+    <VoxelDog rotate={20} />
+    <Container>
+    {loading ? (
+        // <Modal isOpen={loading}>
+        //   <ModalOverlay />
+        //   <ModalContent>
+
+        //     <ModalCloseButton />
+        //     <ModalBody>
+        //       <Center>
+        //         <Spinner />
+        //         <ModalHeader>Loading...</ModalHeader>
+        //       </Center>
+        //     </ModalBody>
+        //   </ModalContent>
+        // </Modal>
+
+        <AlertDialog
+          isOpen={loading}
+          // leastDestructiveRef={cancelRef}
+          onClose={onClose}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                <Center>
+                  <Spinner />
+                  <ModalHeader>Loading...</ModalHeader>
+                </Center>
+              </AlertDialogHeader>
+
+              {/* <AlertDialogBody>
+            Are you sure? You can't undo this action afterwards.
+          </AlertDialogBody> */}
+
+              {/* <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button colorScheme='red' onClick={onClose} ml={3}>
+              Delete
+            </Button>
+          </AlertDialogFooter> */}
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+      ) : (
+      <Section>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Box
+            borderRadius="lg"
+            mb={6}
+            p={10}
+            width={400}
+            textAlign="center"
+            bg={bgValue}
+            css={{ backdropFilter: 'blur(10px)' }}
+          >
+            <VStack spacing={4} align="center">
+            <Image
+                borderRadius="full"
+                boxSize="150px"
+                src={user?.photo ? user?.photo : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png'}
+                alt={"Profile Image"}
+                objectFit="cover"
+                border="3px solid white"
+                />
+              <Text fontSize="lg" fontWeight="bold">
+                Halo, {user?.name} 🐈‍⬛
+              </Text>
+              <Button onClick={onOpen}>Edit Profile</Button>
+            </VStack>
+          </Box>
+        </div>
+      </Section>
+      )}
+    </Container>
+
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Edit Profile</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <VStack spacing={4}>
+            <FormControl>
+              <FormLabel>Name</FormLabel>
+              <Input
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Profile Image</FormLabel>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e)=> handleImageUpload(e)}
+                ref={fileInputRef}
+                display="none"
+              />
+              <Button onClick={() => fileInputRef.current.click()}>
+                Choose Image
+              </Button>
+            </FormControl>
+            {imagePreviews && imagePreviews.length !== 0 ? (
+              <Image
+                src={imagePreviews}
+                alt="Profile Preview"
+                maxHeight="200px"
+              />
+            ) : (<></>)}
+          </VStack>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" mr={3} onClick={handleSubmit}>
+            Save
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  </Layout>
+  );
+};
+
+export default Profile;

@@ -28,6 +28,7 @@
     "react-currency-input-field": "^3.8.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.11.0",
+    "sass": "^1.77.6",
     "styled-components": "^6.1.11",
     "three": "^0.157.0"
   },

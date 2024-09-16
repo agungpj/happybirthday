@@ -27,7 +27,16 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Alert
+  Alert,
+  VStack,
+  HStack,
+  Spacer,
+  Center,
+  Spinner,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader
 } from '@chakra-ui/react'
 import Layout from '../components/layouts/article'
 import Section from '../components/section'
@@ -38,9 +47,11 @@ import { db, storage } from '../firebase'
 import firebase from 'firebase'
 import CurrencyInput from 'react-currency-input-field'
 import { AiTwotoneShopping } from 'react-icons/ai'
+import VoxelDog from '../components/voxel-dog'
+import imageCompression from 'browser-image-compression'
 
 const Posts = () => {
-  const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
+  const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [notes, setNotes] = useState([])
   const [description, setDescription] = useState('')
@@ -52,23 +63,35 @@ const Posts = () => {
   const [imagePreviews, setImagePreviews] = useState([])
   const [modalTitle, setModalTitle] = useState('')
   const [modalMessage, setModalMessage] = useState('')
-  const [newComment, setNewComment] = useState('')
+  const [newComments, setNewComments] = useState({})
   const [comments, setComments] = useState({})
   const [openModals, setOpenModals] = useState(false)
   const [alert, setAlert] = useState(false)
   const fileInputRef = useRef(null)
   const [ids, setIds] = useState('')
+  const [commentImages, setCommentImages] = useState({})
+  const commentFileInputRef = useRef(null)
+  const downloadRef = useRef(null)
+  const [loading, setLoading] = useState(false)
+  const [imgPreview, setImgPreview] = useState([])
+  const [user, setUser] = useState(null)
 
   const OverlayOne = () => (
     <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
   )
 
   useEffect(() => {
-    fetchNotes().catch(console.error)
-  }, [])
+    const getName = localStorage.getItem('user') || null;
+    if (!getName) {
+      window.location.href = '/';
+    } else {
+      setUser(getName);
+      fetchNotes().catch(console.error);
+    }
+  }, [user])
 
   const handleFileChange = event => {
-    const files = Array.from(event.target.files)
+    const files = Array.from(event)
     if (files.length) {
       setImages(files)
       const previews = files.map(file => URL.createObjectURL(file))
@@ -133,7 +156,9 @@ const Posts = () => {
         chatName: description,
         target: goals,
         progress: 0,
-        photoUrls
+        photoUrls,
+        user: localStorage.getItem('user'),
+        date: new Date()
       })
       setSuccess(true)
       openModal('Success Upload!', 'Mading telah ditambahkan')
@@ -163,7 +188,7 @@ const Posts = () => {
         await Promise.all(deletePromises)
       }
 
-      await db.collection('mading').doc(id).delete()
+      await db.collection('nabung').doc(id).delete()
       fetchNotes()
     } catch (error) {
       alert(error.message)
@@ -179,26 +204,49 @@ const Posts = () => {
 
   const fetchNotes = async () => {
     try {
+      setLoading(true)
       const snapshot = await db.collection('nabung').get()
       const notesData = snapshot.docs.map(async doc => {
         const data = doc.data()
+
+        // Fetch user data for nabung
+        const userSnapshot = await db.collection('users').doc(data.user).get()
+        const userData = userSnapshot.data()
+
+        // Fetch comments
         const commentsSnapshot = await db
           .collection('nabung')
           .doc(doc.id)
           .collection('comments')
           .get()
-        const commentsData = commentsSnapshot.docs.map(commentDoc => ({
-          id: commentDoc.id,
-          ...commentDoc.data()
-        }))
+        const commentsData = await Promise.all(
+          commentsSnapshot.docs.map(async commentDoc => {
+            const commentData = commentDoc.data()
+            // Fetch user data for each comment
+            const commentUserSnapshot = await db
+              .collection('users')
+              .doc(commentData.user)
+              .get()
+            const commentUserData = commentUserSnapshot.data()
+            return {
+              id: commentDoc.id,
+              ...commentDoc.data(),
+              user: commentUserData
+            }
+          })
+        )
+
         return {
           id: doc.id,
           data,
+          user: userData,
           comments: commentsData
         }
       })
+
       const resolvedNotes = await Promise.all(notesData)
       setNotes(resolvedNotes)
+      setLoading(false)
     } catch (error) {
       console.error('Failed to fetch notes:', error)
     }
@@ -219,14 +267,41 @@ const Posts = () => {
   }
 
   const handleAddComment = async noteId => {
-    if (newComment.trim() === '') return
+    if (
+      (!newComments[noteId] || newComments[noteId].trim() === '') &&
+      !commentImages[noteId]
+    )
+      return
 
     try {
-      await db.collection('nabung').doc(noteId).collection('comments').add({
-        text: newComment,
-        createdAt: new Date()
-      })
-      setNewComment('')
+      setLoading(true)
+
+      let imageUrl = null
+      if (commentImages[noteId]) {
+        imageUrl = await uploadCommentImage(commentImages[noteId])
+      }
+
+      await db
+        .collection('nabung')
+        .doc(noteId)
+        .collection('comments')
+        .add({
+          text: newComments[noteId] || '',
+          imageUrl: imageUrl,
+          createdAt: new Date(),
+          user: localStorage.getItem('user')
+        })
+
+      // Reset comment input and image
+      setNewComments(prevComments => ({
+        ...prevComments,
+        [noteId]: ''
+      }))
+      setCommentImages(prevImages => ({
+        ...prevImages,
+        [noteId]: null
+      }))
+      setLoading(false)
       fetchNotes()
     } catch (error) {
       console.error('Error adding comment:', error)
@@ -266,7 +341,6 @@ const Posts = () => {
           // },
           progress: firebase.firestore.FieldValue.arrayUnion(p)
         })
-      console.log(progress)
       onClose()
       setSuccess(true)
       setIds('')
@@ -274,7 +348,6 @@ const Posts = () => {
       fetchNotes()
     } catch (error) {
       // alert(error.message)
-      console.log(error)
     }
   }
 
@@ -284,22 +357,128 @@ const Posts = () => {
     setOpenModals(true)
   }
 
+  const handleCommentImageUpload = async (noteId, event) => {
+    const imageFile = event.target.files[0]
+
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    }
+    try {
+      setLoading(true)
+      const compressedFile = await imageCompression(imageFile, options)
+
+      if (compressedFile) {
+        setCommentImages(prevImages => ({
+          ...prevImages,
+          [noteId]: compressedFile
+        }))
+        const arr = URL.createObjectURL(compressedFile)
+        setImgPreview(arr)
+      }
+      setLoading(false)
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  const uploadCommentImage = async file => {
+    const filename = `${Date.now()}-${file.name}`
+    const storageRef = storage.ref().child(`comment-images/${filename}`)
+    await storageRef.put(file)
+    return await storageRef.getDownloadURL()
+  }
+
+  const handleDownloadImage = async (url, filename) => {
+    try {
+      // if (downloadRef.current) {
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.target = '_blank' // This line opens the link in a new tab
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      // }
+    } catch (error) {
+      console.error('Error downloading image:', error)
+    }
+  }
+
+  async function handleImageUpload(event, func) {
+    const files = Array.from(event.target.files)
+    const compressedFiles = []
+
+    for (let i = 0; i < files.length; i++) {
+      const imageFile = files[i]
+
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+      }
+      try {
+        setLoading(true)
+        const compressedFile = await imageCompression(imageFile, options)
+        compressedFiles.push(compressedFile)
+        setLoading(false)
+      } catch (error) {
+        console.log(error)
+      }
+    }
+
+    handleFileChange(compressedFiles) // write your own logic
+  }
+
   return (
     <Layout title="Works">
-      {!openModals ? (
-        <Modal isCentered isOpen={isOpen} onClose={onClose}>
-          <OverlayOne />
-          <ModalContent>
-            <ModalHeader>{modalTitle}</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Text>{modalMessage}</Text>
-            </ModalBody>
-            <ModalFooter>
-              <Button onClick={onClose}>Close</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+      <VoxelDog rotate={20} />
+
+      {loading ? (
+        // <Modal isOpen={loading}>
+        //   <ModalOverlay />
+        //   <ModalContent>
+
+        //     <ModalCloseButton />
+        //     <ModalBody>
+        //       <Center>
+        //         <Spinner />
+        //         <ModalHeader>Loading...</ModalHeader>
+        //       </Center>
+        //     </ModalBody>
+        //   </ModalContent>
+        // </Modal>
+
+        <AlertDialog
+          isOpen={loading}
+          // leastDestructiveRef={cancelRef}
+          onClose={onClose}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                <Center>
+                  <Spinner />
+                  <ModalHeader>Loading...</ModalHeader>
+                </Center>
+              </AlertDialogHeader>
+
+              {/* <AlertDialogBody>
+            Are you sure? You can't undo this action afterwards.
+          </AlertDialogBody> */}
+
+              {/* <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button colorScheme='red' onClick={onClose} ml={3}>
+              Delete
+            </Button>
+          </AlertDialogFooter> */}
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       ) : (
         <Modal isOpen={isOpen} onClose={onClose}>
           <ModalOverlay />
@@ -332,6 +511,7 @@ const Posts = () => {
                     textAlign: 'center',
                     alignItems: 'center'
                   }}
+                  intlConfig={{ locale: 'id-ID', currency: 'IDR' }}
                   onValueChange={value => setProgress(value)}
                 />
               </Box>
@@ -357,279 +537,426 @@ const Posts = () => {
           </ModalContent>
         </Modal>
       )}
-      <Container>
-        <Heading as="h3" fontSize={20} mb={4}>
+      {/* <Heading as="h3" fontSize={20} mb={4}>
           Works
-        </Heading>
+        </Heading> */}
 
-        <SimpleGrid columns={[1, 1, 2]} gap={6}>
-          <Section>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Box
-                borderRadius="lg"
-                mb={6}
-                p={3}
-                width={400}
-                textAlign="center"
-                bg={bgValue}
-                css={{ backdropFilter: 'blur(10px)' }}
-              >
-                <div pb={10} style={{ display: 'flex', paddingBottom: '15px' }}>
-                  <Input
-                    placeholder="Enter name"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                  />
+      {/* <SimpleGrid columns={[1, 1, 2]} gap={6}> */}
+      <Section>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Box
+            borderRadius="lg"
+            mb={6}
+            p={3}
+            width={400}
+            textAlign="center"
+            bg={bgValue}
+            css={{ backdropFilter: 'blur(10px)' }}
+          >
+            <div pb={10} style={{ display: 'flex', paddingBottom: '15px' }}>
+              <Input
+                placeholder="Enter name"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+              />
 
-                  <IconButton
-                    variant="ghost"
-                    colorScheme="gray"
-                    aria-label="See menu"
-                    ml={3}
-                    icon={<AttachmentIcon />}
-                    onClick={handleButtonClick}
-                  />
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    multiple
-                    onChange={handleFileChange}
-                  />
-                </div>
-                <CurrencyInput
-                  placeholder="Enter target"
-                  prefix="Rp. "
-                  decimalsLimit={0}
-                  style={{
-                    backgroundColor: 'transparent',
-                    borderColor: '#7C7C7C',
-                    padding: '0 10px 14px 10px',
-                    borderRadius: '5px',
-                    marginRight: '4px',
-                    borderWidth: '0.5px',
-                    borderStyle: 'solid'
-                  }}
-                  onValueChange={value => setGoals(value)}
-                  value={goals}
-                />
-
-                {imagePreviews.length > 0 && (
-                  <Flex
-                    justifyContent="center"
-                    alignItems="center"
-                    mt={4}
-                    flexWrap="wrap"
-                  >
-                    {imagePreviews.map((preview, index) => (
-                      <Image
-                        key={index}
-                        src={preview}
-                        alt="Image Preview"
-                        boxSize="100px"
-                        objectFit="cover"
-                        borderRadius="lg"
-                        onClick={handleImageClick}
-                        m={2}
-                      />
-                    ))}
-                  </Flex>
-                )}
-                <Button mt={3} onClick={handleSubmit}>
-                  Upload
-                </Button>
-              </Box>
+              <IconButton
+                variant="ghost"
+                colorScheme="gray"
+                aria-label="See menu"
+                ml={3}
+                icon={<AttachmentIcon />}
+                onClick={handleButtonClick}
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                multiple
+                onChange={event => handleImageUpload(event, 'post')}
+              />
             </div>
-            {notes.map(
-              ({
-                id,
-                data: { chatName, photoUrls, target, progress },
-                comments
-              }) => {
-                let remainingTarget = target
+            <CurrencyInput
+              placeholder="Enter target"
+              prefix="Rp. "
+              decimalsLimit={0}
+              style={{
+                backgroundColor: 'transparent',
+                borderColor: '#7C7C7C',
+                padding: '0 10px 14px 10px',
+                borderRadius: '5px',
+                marginRight: '4px',
+                borderWidth: '0.5px',
+                borderStyle: 'solid'
+              }}
+              intlConfig={{ locale: 'id-ID', currency: 'IDR' }}
+              onValueChange={value => setGoals(value)}
+              value={goals}
+            />
 
-                return (
-                  <Card maxW="md" key={id} pb={10} mb={10}>
-                    <CardHeader>
-                      <Flex alignItems="center" justifyContent="space-between">
-                        <Flex
-                          flex="1"
-                          gap="4"
-                          alignItems="center"
-                          flexWrap="wrap"
-                        >
-                          <Avatar
-                            name="Segun Adebayo"
-                            src="https://bit.ly/sage-adebayo"
-                          />
-                          <Box>
-                            <Text>Creator, Chakra UI</Text>
-                          </Box>
-                        </Flex>
-                        <Menu>
-                          <MenuButton
-                            as={IconButton}
-                            variant="ghost"
-                            colorScheme="gray"
-                            aria-label="See menu"
-                            icon={<BsThreeDotsVertical />}
-                          />
-                          <MenuList>
-                            <MenuItem
-                              onClick={() => handleDelete(id, photoUrls)}
-                            >
-                              Delete Post
-                            </MenuItem>
+            {imagePreviews.length > 0 && (
+              <Flex
+                justifyContent="center"
+                alignItems="center"
+                mt={4}
+                flexWrap="wrap"
+              >
+                {imagePreviews.map((preview, index) => (
+                  <Image
+                    key={index}
+                    src={preview}
+                    alt="Image Preview"
+                    boxSize="100px"
+                    objectFit="cover"
+                    borderRadius="lg"
+                    onClick={handleImageClick}
+                    m={2}
+                  />
+                ))}
+              </Flex>
+            )}
+            <Button mt={3} onClick={handleSubmit}>
+              Upload
+            </Button>
+          </Box>
+        </div>
+        {notes.map(
+          ({
+            id,
+            data: { chatName, photoUrls, target, progress, date },
+            user,
+            comments
+          }) => {
+            let remainingTarget = target
+            {
+              progress
+                ? progress?.map((item, index) => {
+                    return (remainingTarget -= item.progress)
+                  })
+                : null
+            }
+
+            return (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <Card maxW="md" key={id} pb={10} mb={10}>
+                  <CardHeader>
+                    <Flex alignItems="center" justifyContent="space-between">
+                      <Flex
+                        flex="1"
+                        gap="4"
+                        alignItems="center"
+                        flexWrap="wrap"
+                      >
+                        <Avatar name={user?.name} src={user?.photoUrls} />
+                        <Box>
+                          <Text style={{ fontWeight: 'bolder' }}>
+                            {user?.name}
+                          </Text>
+                          <Text>
+                            {date?.toDate().toLocaleDateString('id-ID', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Text>
+                        </Box>
+                      </Flex>
+                      <Menu>
+                        <MenuButton
+                          as={IconButton}
+                          variant="ghost"
+                          colorScheme="gray"
+                          aria-label="See menu"
+                          icon={<BsThreeDotsVertical />}
+                        />
+                        <MenuList>
+                          <MenuItem onClick={() => handleDelete(id, photoUrls)}>
+                            Delete Post
+                          </MenuItem>
+                          {remainingTarget !== 0 ? (
                             <MenuItem onClick={() => handleOpenUpdate(id)}>
                               Update Progress
                             </MenuItem>
-                          </MenuList>
-                        </Menu>
-                      </Flex>
-                    </CardHeader>
-                    <CardBody>
-                      <Text mb={3}>{chatName}</Text>
-                      {photoUrls.length > 1 ? (
-                        <Flex
-                          justifyContent="center"
-                          alignItems="center"
-                          mt={4}
-                          flexWrap="wrap"
-                        >
-                          {photoUrls?.map((photoUrl, index) => (
-                            <Image
-                              key={index}
-                              objectFit="cover"
-                              src={photoUrl}
-                              alt={`Image ${index + 1}`}
-                              boxSize="100px"
-                              m={2}
-                            />
-                          ))}
-                        </Flex>
-                      ) : (
-                        <>
-                          {photoUrls?.map((photoUrl, index) => (
-                            <Image
-                              key={index}
-                              objectFit="cover"
-                              src={photoUrl}
-                              alt={`Image ${index + 1}`}
-                            />
-                          ))}
-                        </>
-                      )}
-                      <Box
-                        borderRadius="lg"
-                        mb={2}
-                        mt={3}
-                        p={3}
-                        textAlign={'center'}
-                        bg={bgValue}
-                        css={{ backdropFilter: 'blur(10px)' }}
+                          ) : (
+                            <></>
+                          )}
+                        </MenuList>
+                      </Menu>
+                    </Flex>
+                  </CardHeader>
+                  <CardBody>
+                    <Text mb={3}>{chatName}</Text>
+                    {photoUrls.length > 1 ? (
+                      <Flex
+                        justifyContent="center"
+                        alignItems="center"
+                        mt={4}
+                        flexWrap="wrap"
                       >
-                        <Heading as="h4" mb={13} size="md">
-                          <div
+                        {photoUrls?.map((photoUrl, index) => (
+                          <Image
+                            key={index}
+                            objectFit="cover"
+                            src={photoUrl}
+                            alt={`Image ${index + 1}`}
+                            boxSize="100px"
+                            m={2}
+                          />
+                        ))}
+                      </Flex>
+                    ) : (
+                      <>
+                        {photoUrls?.map((photoUrl, index) => (
+                          <Image
+                            key={index}
+                            objectFit="cover"
+                            src={photoUrl}
+                            width={'500px'}
+                            alt={`Image ${index + 1}`}
+                          />
+                        ))}
+                      </>
+                    )}
+                    <Box
+                      borderRadius="lg"
+                      mb={2}
+                      mt={3}
+                      p={3}
+                      textAlign={'center'}
+                      bg={bgValue}
+                      css={{ backdropFilter: 'blur(10px)' }}
+                    >
+                      <Heading as="h6" mb={13} size="md">
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {remainingTarget == 0 ? (
+                            <span
+                              style={{ fontWeight: 'bolder', fontSize: '15px' }}
+                            >
+                              🌈💥 Yeay! Tabungan kamu sudah tercapai 💫 🌸
+                            </span>
+                          ) : (
+                            <></>
+                          )}
+                        </div>
+                      </Heading>
+                      <Heading as="h6" mb={13} size="md">
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <CurrencyInput
+                            placeholder="Enter target"
+                            prefix="✨Rp. "
+                            decimalsLimit={0}
                             style={{
-                              display: 'flex',
+                              backgroundColor: 'transparent',
+                              fontWeight: 'bold',
                               justifyContent: 'center',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              textAlign: 'center'
                             }}
-                          >
-                            <CurrencyInput
-                              placeholder="Enter target"
-                              prefix="Target: Rp. "
-                              decimalsLimit={0}
-                              style={{
-                                backgroundColor: 'transparent',
-                                fontWeight: 'bold'
-                              }}
-                              onValueChange={value => setGoals(value)}
-                              value={target}
-                              disabled={true}
-                            />
-                          </div>
-                        </Heading>
-                        {progress ? progress?.map((item, index) => {
-                          remainingTarget -= item.progress
+                            intlConfig={{ locale: 'id-ID', currency: 'IDR' }}
+                            onValueChange={value => setGoals(value)}
+                            value={target}
+                            disabled={true}
+                          />
+                        </div>
+                      </Heading>
+
+                      {progress ? (
+                        progress?.map((item, index) => {
                           return (
                             <div key={index}>
-                              <h4>
-                                {`Amount: Rp. ${(
-                                  item.progress / 1000
-                                ).toLocaleString('id-ID', {
-                                  minimumFractionDigits: 3,
-                                  maximumFractionDigits: 3
-                                })} ( ${item.date
+                              <Text
+                                fontFamily='M PLUS Rounded 1c", sans-serif'
+                                fontWeight="bold"
+                              >
+                                {`Amount: Rp. ${item.progress.toLocaleString(
+                                  'id-ID',
+                                  {
+                                    maximumFractionDigits: 3
+                                  }
+                                )} ( ${item.date
                                   .toDate()
                                   .toLocaleDateString('id-ID', {
                                     year: 'numeric',
                                     month: 'long',
                                     day: 'numeric'
                                   })} )`}
-                              </h4>
-                              <h4 style={{padding: '10px', fontSize: '12px', fontWeight: 'bolder'}}>
-                                {`+ Remaining Target: Rp. ${(
-                                  remainingTarget / 1000
-                                ).toLocaleString('id-ID', {
-                                  minimumFractionDigits: 3,
-                                  maximumFractionDigits: 3
-                                })}`}
-                              </h4>
+                              </Text>
                             </div>
                           )
-                        }) : (<></>)}
-                      </Box>
-                      <Box mt={4}>
-                        <Heading as="h4" mb={13} size="md">
-                          Comments
-                        </Heading>
-                        {comments.map(comment => (
-                          <div style={{ display: 'flex' }}>
+                        })
+                      ) : (
+                        <></>
+                      )}
+                      {remainingTarget !== 0 ? (
+                        <h4
+                          style={{
+                            padding: '10px',
+                            fontFamily: '"M PLUS Rounded 1c", sans-serif'
+                          }}
+                        >
+                          Remaining Target:{' '}
+                          <span
+                            style={{ fontWeight: 'bolder' }}
+                          >{`Rp. ${remainingTarget.toLocaleString('id-ID', {
+                            maximumFractionDigits: 3
+                          })}`}</span>
+                        </h4>
+                      ) : (
+                        <></>
+                      )}
+                    </Box>
+                    <VStack mt={4} align="stretch" spacing={4}>
+                      <Heading as="h4" size="md">
+                        Comments
+                      </Heading>
+                      {comments.map((comment, index) => (
+                        <Box
+                          key={index}
+                          borderRadius="lg"
+                          p={3}
+                          bg={bgValue}
+                          css={{ backdropFilter: 'blur(10px)' }}
+                        >
+                          <HStack spacing={3} mb={2}>
                             <Avatar
-                              name="Segun Adebayo"
-                              src="https://bit.ly/sage-adebayo"
+                              name={comment?.user?.name}
+                              src={comment?.user?.photoUrls[0]}
+                              size="sm"
                             />
-                            <Box
-                              borderRadius="lg"
-                              mb={3}
-                              p={3}
-                              ml={3}
-                              bg={bgValue}
-                              css={{ backdropFilter: 'blur(10px)' }}
-                            >
-                              <Text>{comment.text}</Text>
-                            </Box>
-                          </div>
-                        ))}
-                      </Box>
-                      <Flex mt={4}>
-                        <Input
-                          placeholder="Add a comment..."
-                          value={newComment}
-                          onChange={e => setNewComment(e.target.value)}
-                        />
-                        <Button ml={2} onClick={() => handleAddComment(id)}>
-                          Send
-                        </Button>
-                      </Flex>
-                    </CardBody>
-                    <CardFooter
-                      justify="space-between"
-                      flexWrap="wrap"
-                      sx={{
-                        '& > button': {
-                          minW: '136px'
+                            <VStack align="start" spacing={0}>
+                              <Text fontWeight="bold">
+                                {comment.user?.name}
+                              </Text>
+                              <Text fontSize="xs" color="gray.500">
+                                {comment.createdAt
+                                  .toDate()
+                                  .toLocaleDateString('id-ID', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  })}
+                              </Text>
+                            </VStack>
+                            <Spacer />
+                            <Menu>
+                              <MenuButton
+                                as={IconButton}
+                                aria-label="Options"
+                                icon={<BsThreeDotsVertical />}
+                                variant="ghost"
+                                size="sm"
+                              />
+                              <MenuList>
+                                <MenuItem
+                                  onClick={() =>
+                                    handleDownloadImage(
+                                      comment.imageUrl,
+                                      `image${id + 1}.jpg`
+                                    )
+                                  }
+                                >
+                                  Download Image
+                                </MenuItem>
+                              </MenuList>
+                            </Menu>
+                          </HStack>
+                          <Text mb={2}>{comment.text}</Text>
+                          {comment.imageUrl && (
+                            <Image
+                              src={comment.imageUrl}
+                              alt="Comment image"
+                              maxH="200px"
+                              objectFit="cover"
+                              borderRadius="md"
+                            />
+                          )}
+                        </Box>
+                      ))}
+                    </VStack>
+
+                    <Flex mt={4}>
+                      <Input
+                        placeholder="Add a comment..."
+                        value={newComments[id] || ''}
+                        onChange={e =>
+                          setNewComments(prevComments => ({
+                            ...prevComments,
+                            [id]: e.target.value
+                          }))
                         }
-                      }}
-                    ></CardFooter>
-                  </Card>
-                )
-              }
-            )}
-          </Section>
-        </SimpleGrid>
-      </Container>
+                      />
+                      <label htmlFor={`comment-image-${id}`}>
+                        <IconButton
+                          as="span"
+                          ml={2}
+                          icon={<AttachmentIcon />}
+                          aria-label="Upload image"
+                          cursor="pointer"
+                        />
+                      </label>
+                      <input
+                        id={`comment-image-${id}`}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={e => handleCommentImageUpload(id, e)}
+                      />
+                      <Button ml={2} onClick={() => handleAddComment(id)}>
+                        Send
+                      </Button>
+                    </Flex>
+                    {commentImages[id] && imgPreview.length > 0 && (
+                      <Flex
+                        justifyContent="center"
+                        alignItems="center"
+                        mt={4}
+                        flexWrap="wrap"
+                      >
+                        {/* {imgPreview.map((preview, index) => ( */}
+                        <Image
+                          key={imgPreview}
+                          src={imgPreview}
+                          alt="Image Preview"
+                          boxSize="100px"
+                          objectFit="cover"
+                          borderRadius="lg"
+                          onClick={handleImageClick}
+                          m={2}
+                        />
+                        {/* ))} */}
+                      </Flex>
+                    )}
+                  </CardBody>
+                  <CardFooter
+                    justify="space-between"
+                    flexWrap="wrap"
+                    sx={{
+                      '& > button': {
+                        minW: '136px'
+                      }
+                    }}
+                  />
+                </Card>
+              </div>
+            )
+          }
+        )}
+      </Section>
+      {/* </SimpleGrid> */}
     </Layout>
   )
 }

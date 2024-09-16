@@ -36,30 +36,70 @@ import Layout from '../components/layouts/article'
 import { useState, useEffect, useRef } from 'react'
 import { db, storage } from '../firebase' // Ensure storage is imported
 import VoxelDog from '../components/voxel-dog'
+import styled, { keyframes } from 'styled-components';
+const shine = keyframes`
+  0% {
+    background-position: 0;
+  }
+  60% {
+    background-position: 180px;
+  }
+  100% {
+    background-position: 180px;
+  }
+`;
+
+const ButtonShine = styled.a`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 121px 48px;
+  color: #fff;
+  background: linear-gradient(to right, #E4D6F5 0, #C51077 10%, #E4D6F5 20%);
+  background-position: 0;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ${shine} 3s infinite linear;
+  animation-fill-mode: forwards;
+  -webkit-text-size-adjust: none;
+  font-weight: 600;
+  font-size: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: "Poppins", sans-serif;
+`;
 
 const Home = () => {
-  const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
   const [name, setName] = useState('')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const finalRef = useRef(null)
   const [alert, setAlert] = useState(false)
+  const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
   const [rotate, setRotate] = useState(0)
-
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    const getName = localStorage.getItem('user');
-
-    getName == 'test' ? onOpen() : onClose()
-  }, [])
+    const getName = localStorage.getItem('user') || null;
+    setUser(getName)
+    if(!user) {
+      onOpen()
+    }
+    getName == 'KCLqkpnmxvvpay00453g' || getName == 'd9B8lkubjDVyIhCFVOie' ? onOpen() : onClose()
+  }, [user])
 
   const handleEnter = () => {
     
 
-    if(name == 'test') {
+    if(name == 'nimasayu') {
       // if() 
+      // setRotate(9)
+      onOpen()
+      localStorage.setItem('user', 'KCLqkpnmxvvpay00453g');
+    } else if (name == 'youknowme') {
       setRotate(9)
       onOpen()
-      localStorage.setItem('user', 'test');
+      localStorage.setItem('user', 'd9B8lkubjDVyIhCFVOie');
     } else {
       setAlert(true)
     }
@@ -68,7 +108,7 @@ const Home = () => {
   return (
     <Layout>
       <Container>
-        <VoxelDog rotate={rotate} />
+        <VoxelDog  />
         <Modal finalFocusRef={finalRef} isOpen={!isOpen} onClose={onClose}>
           <ModalOverlay />
           <ModalContent>
@@ -107,54 +147,56 @@ const Home = () => {
             <br></br>
            
           </ModalContent>
-
-         
         </Modal>
-
-        
-
-        <Box
-          borderRadius="lg"
-          mb={6}
-          p={3}
-          textAlign="center"
-          bg={bgValue}
-          css={{ backdropFilter: 'blur(10px)' }}
-        >
-          Hello, Welcome!!
-        </Box>
         <div style={{display: 'flex', flexDirection: 'column'}}>
-        
+        <Button
+            as={NextLink}
+            href="/profile"
+            scroll={false}
+            style={{margin: '10px 100px'}}
+            bg={bgValue}
+            css={{ backdropFilter: 'blur(2px)' }}
+          >
+           Profile
+          </Button>
         <Button
             as={NextLink}
             href="/works"
             scroll={false}
             style={{margin: '10px 100px'}}
-            colorScheme="teal"
+            bg={bgValue}
+            css={{ backdropFilter: 'blur(2px)' }}
+
           >
            Mading
+          </Button>
+          
+        <Button
+            as={NextLink}
+            href="/posts"
+            scroll={false}
+            style={{margin: '10px 100px'}}
+            bg={bgValue}
+            css={{ backdropFilter: 'blur(2px)' }}
+          >
+           Nabung
           </Button>
           <Button
             as={NextLink}
             href="/wallpapers"
             scroll={false}
             style={{margin: '10px 100px'}}
-            colorScheme="teal"
+            bg={bgValue}
+            css={{ backdropFilter: 'blur(2px)' }}
           >
-           Chat
+           Game
           </Button>
-        <Button
-            as={NextLink}
-            href="/posts"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            colorScheme="teal"
-          >
-           Nabung
-          </Button>
-     
         </div>
-       
+        <Box as="footer" role="contentinfo" py="6" textAlign="center">
+          <Text fontSize="sm" color="gray.600">
+            &copy; 2023 Agung Prasetya. All rights reserved.
+          </Text>
+        </Box>
       </Container>
     
     </Layout>

@@ -28,9 +28,11 @@ const LinkItem = ({ href, path, target, children, ...props }) => {
       href={href}
       scroll={false}
       p={2}
-      bg={active ? 'grassTeal' : undefined}
-      color={active ? '#202023' : inactiveColor}
+      bg={active ? 'grassTealAlpha.500' : undefined}
+      color={active ? '#ffffff' : inactiveColor}
       target={target}
+      fontWeight={active ? 'bold' : 'normal'}
+      boxShadow={active ? '0 2px 4px #000000Alpha.200' : undefined}
       {...props}
     >
       {children}
@@ -77,27 +79,20 @@ const Navbar = props => {
           flexGrow={1}
           mt={{ base: 4, md: 0 }}
         >
-          <LinkItem href="/works" path={path}>
-            Works
+           <LinkItem href="/profile" path={path}>
+            Profile
           </LinkItem>
-          <LinkItem href="/wallpapers" path={path}>
-            Wallpapers
+          <LinkItem href="/works" path={path}>
+            Mading
           </LinkItem>
           <LinkItem href="/posts" path={path}>
-            Posts
+            Nabung
           </LinkItem>
-          <LinkItem href="https://uses.craftz.dog/">Uses</LinkItem>
-          <LinkItem
-            target="_blank"
-            href="https://github.com/craftzdog/craftzdog-homepage"
-            path={path}
-            display="inline-flex"
-            alignItems="center"
-            style={{ gap: 4 }}
-            pl={2}
-          >
-            <IoLogoGithub />
-            Source
+          {/* <LinkItem href="/profile" path={path}>
+            Games
+          </LinkItem> */}
+          <LinkItem href="/wallpapers" path={path}>
+            Game
           </LinkItem>
         </Stack>
 
@@ -113,18 +108,21 @@ const Navbar = props => {
                 aria-label="Options"
               />
               <MenuList>
-                <MenuItem as={MenuLink} href="/">
-                  About
-                </MenuItem>
-                <MenuItem as={MenuLink} href="/works">
-                  Works
-                </MenuItem>
-                <MenuItem as={MenuLink} href="/wallpapers">
-                  Wallpapers
-                </MenuItem>
-                <MenuItem as={MenuLink} href="/posts">
-                  Posts
-                </MenuItem>
+              <MenuItem href="/profile" as={Link}>
+                Profile
+              </MenuItem>
+              <MenuItem href="/works" as={Link}>
+                Mading
+              </MenuItem>
+              <MenuItem href="/posts" as={Link}>
+                Nabung
+              </MenuItem>
+              {/* <MenuItem href="/profile" as={Link}>
+                Games
+              </MenuItem> */}
+              <MenuItem href="/wallpaper" as={Link}>
+                Game
+              </MenuItem>
                 <MenuItem as={MenuLink} href="https://uses.craftz.dog/">
                   Uses
                 </MenuItem>

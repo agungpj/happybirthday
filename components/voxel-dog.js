@@ -48,14 +48,14 @@ const VoxelDog = (props) => {
       refRenderer.current = renderer
       const scene = new THREE.Scene()
 
-      const target = new THREE.Vector3(-1.5, 3.2, 0) // Adjusted X position to move the object to the left
+      const target = new THREE.Vector3(-1, 1.3, 0) // Adjusted X position to move the object to the left
       const initialCameraPosition = new THREE.Vector3(
-        100 * Math.sin(2 * Math.PI),
+        10 * Math.sin(2 * Math.PI),
         40,
-        10 * Math.cos(5 * Math.PI)
+        100 * Math.cos(5 * Math.PI)
       )
 
-      const scale = scH * 0.002 + 4.8
+      const scale = scH * 0.002 + 5.8
       const camera = new THREE.OrthographicCamera(
         -scale,
         scale,
@@ -92,16 +92,17 @@ const VoxelDog = (props) => {
 
         if (frame <= 100) {
           const p = initialCameraPosition
+          // Adjusted position to move the object to the rightconst rotSpeed = -easeOutCirc(frame / 100) * Math.PI * rotate
           const rotSpeed = -easeOutCirc(frame / 100) * Math.PI * rotate
 
           camera.position.y = 4
           camera.position.x = 
-            p.x * Math.cos(rotSpeed) + p.z * Math.sin(rotSpeed)
+            p.x * Math.cos(80) + p.z * Math.sin(80)
           camera.position.z =
-            p.z * Math.cos(rotSpeed) - p.x * Math.sin(rotSpeed)
+            p.z * Math.cos(80) - p.x * Math.sin(80)
           camera.lookAt(target)
         } else {
-          controls.update()
+          // controls.update()
         }
         
         renderer.render(scene, camera)

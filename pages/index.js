@@ -17,6 +17,8 @@ import {
 import Layout from '../components/layouts/article'
 import { useState, useEffect, useRef } from 'react'
 import VoxelDog from '../components/voxel-dog'
+import Cat from '../public/cat.svg'
+import Image from 'next/image'
 
 const Home = () => {
   const [name, setName] = useState('')
@@ -89,51 +91,55 @@ const Home = () => {
            
           </ModalContent>
         </Modal>
-        <div style={{display: 'flex', flexDirection: 'column'}}>
-        <Button
-            as={NextLink}
-            href="/profile"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-          >
-           Profile
-          </Button>
-        <Button
-            as={NextLink}
-            href="/works"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-
-          >
-           Mading
-          </Button>
-          
-        <Button
-            as={NextLink}
-            href="/posts"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-          >
-           Nabung
-          </Button>
-          <Button
-            as={NextLink}
-            href="/wallpapers"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-          >
-           Game
-          </Button>
-        </div>
+        <div style={{ position: 'relative' }}>
+  <Image src={Cat} alt="Cat Icon" width={300} height={300} style={{ position: 'absolute', bottom: 20, top: -150, left: 95, zIndex: 0 }} />
+  <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <Button
+      as={NextLink}
+      href="/profile"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Profile
+    </Button>
+    <Button
+      as={NextLink}
+      href="/works"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Mading
+    </Button>
+    <Button
+      as={NextLink}
+      href="/posts"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Nabung
+    </Button>
+    <Button
+      as={NextLink}
+      href="/wallpapers"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Game
+    </Button>
+  </div>
+</div>
         <Box as="footer" role="contentinfo" py="6" textAlign="center">
+          <h1>
+          🐈‍⬛
+          </h1>
           <Text fontSize="sm" color="gray.600">
             &copy; 2023 Agung Prasetya. All rights reserved.
           </Text>

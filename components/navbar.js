@@ -38,9 +38,7 @@ const LinkItem = ({ href, path, target, children, ...props }) => {
   )
 }
 
-const MenuLink = forwardRef((props, ref) => (
-  <Link ref={ref} as={NextLink} {...props} />
-))
+
 
 const Navbar = props => {
   const { path } = props
@@ -120,6 +118,9 @@ const Navbar = props => {
               </MenuItem> */}
               <MenuItem href="/wallpapers" as={Link}>
                 Game
+              </MenuItem>
+              <MenuItem>
+              🐈‍⬛
               </MenuItem>
               </MenuList>
             </Menu>

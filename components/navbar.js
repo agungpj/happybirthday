@@ -1,4 +1,3 @@
-import { forwardRef } from 'react'
 import Logo from './logo'
 import NextLink from 'next/link'
 import {
@@ -118,9 +117,6 @@ const Navbar = props => {
               </MenuItem> */}
               <MenuItem href="/wallpapers" as={Link}>
                 Game
-              </MenuItem>
-              <MenuItem>
-              🐈‍⬛
               </MenuItem>
               </MenuList>
             </Menu>

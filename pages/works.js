@@ -219,14 +219,27 @@ const Works = () => {
       })
 
       const resolvedNotes = await Promise.all(notesData)
-      setNotes(resolvedNotes.sort((a, b) => {
-        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
-        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
-        return dateB - dateA;
-    }))
+    sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
+      const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+      const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+      return dateB - dateA;
+  }))
     } catch (error) {
       console.error('Failed to fetch notes:', error)
     }
+  }
+
+  function sortCommentsByTimestamp(data) {
+    data.forEach(item => {
+      item.comments.sort((a, b) => {
+        // Calculate the total milliseconds for each createdAt timestamp
+        const timestampA = a.createdAt.seconds * 1000 + a.createdAt.nanoseconds / 1000000;
+        const timestampB = b.createdAt.seconds * 1000 + b.createdAt.nanoseconds / 1000000;
+        // Sort in ascending order
+        return timestampA - timestampB;
+      });
+    });
+    setNotes(data)
   }
 
   const handleButtonClick = () => {
@@ -479,10 +492,20 @@ const Works = () => {
                       </Heading>
                       {comments.map(comment => (
                         <div key={comment?.user?.name}>
-                          <p style={{ padding: '10px', fontWeight: 'bold' }}>
-                            {comment?.user?.name}
-                          </p>
-
+                          <div style={{ display: 'flex', flexDirection: 'column', padding: '10px' }}>
+                            <p style={{ fontWeight: 'bold' }}>
+                              {comment?.user?.name}
+                            </p>
+                            <Text fontSize="xs" color="gray.500">
+                              {comment.createdAt
+                                .toDate()
+                                .toLocaleDateString('id-ID', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                            </Text>
+                          </div>
                           <div style={{ display: 'flex' }}>
                             <Avatar
                               name={comment?.user?.name}

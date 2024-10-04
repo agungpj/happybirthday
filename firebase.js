@@ -1,7 +1,7 @@
-import firebase from "firebase/app"
-import "firebase/firestore";
-import "firebase/auth";
-import "firebase/storage";
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAFdHvWkcgkwI0Dh3vgxXzk4NCLnbmDh20",
@@ -12,18 +12,10 @@ const firebaseConfig = {
   appId: "1:1031050448143:web:ec164847852fdb19fb427a"
 };
 
-let app;
+const app = initializeApp(firebaseConfig);
 
-if (firebase.apps.length === 0) {
-  app = firebase.initializeApp(firebaseConfig);
-} else {
-  app = firebase.app();
-}
-
-const storage = firebase.storage();
-const db = app.firestore();
-const auth = firebase.auth();
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
 
 export { db, auth, storage };
-
-//  allow read, write: if request.time < timestamp.date(2024, 2, 3);

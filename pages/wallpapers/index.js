@@ -63,8 +63,12 @@ const Wallpapers = () => {
     } else {
       setUser(getName);
     }
+    
+  }, [user])
+
+  useEffect(() => {
     fetchNotes().catch(console.error);
-  }, [user, notes])
+  }, [notes])
 
   const fetchNotes = async () => {
     try {
@@ -117,7 +121,7 @@ const Wallpapers = () => {
         setLoading(false)
 
       } else {
-        setNotes(resolvedNotes)
+        sortCommentsByTimestamp(resolvedNotes)
         setLoading(false)
 
       }
@@ -126,6 +130,20 @@ const Wallpapers = () => {
       console.error('Failed to fetch notes:', error)
     }
   }
+
+  function sortCommentsByTimestamp(data) {
+    data.forEach(item => {
+      item.comments.sort((a, b) => {
+        // Calculate the total milliseconds for each createdAt timestamp
+        const timestampA = a.createdAt.seconds * 1000 + a.createdAt.nanoseconds / 1000000;
+        const timestampB = b.createdAt.seconds * 1000 + b.createdAt.nanoseconds / 1000000;
+        // Sort in ascending order
+        return timestampA - timestampB;
+      });
+    });
+    setNotes(data)
+  }
+
 
   const handleAddComment = async (noteId) => {
     const newComment = comments[noteId]
@@ -260,11 +278,22 @@ const Wallpapers = () => {
                         </Menu>
                       </Heading>
                       {noteComments.map(comment => (
-                        <Box key={comment.id} mb={4}>
-                          <p style={{ padding: '10px', fontWeight: 'bold' }}>
-                            {comment?.user?.name}
-                          </p>
-                          <Flex>
+                        <div key={comment?.user?.name}>
+                          <div style={{ display: 'flex', flexDirection: 'column', padding: '10px' }}>
+                            <p style={{ fontWeight: 'bold' }}>
+                              {comment?.user?.name}
+                            </p>
+                            <Text fontSize="xs" color="gray.500">
+                              {comment.createdAt
+                                .toDate()
+                                .toLocaleDateString('id-ID', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                            </Text>
+                          </div>
+                          <div style={{ display: 'flex' }}>
                             <Avatar
                               name={comment?.user?.name}
                               src={comment?.user?.photoUrls}
@@ -279,8 +308,8 @@ const Wallpapers = () => {
                             >
                               <Text>{comment.text}</Text>
                             </Box>
-                          </Flex>
-                        </Box>
+                          </div>
+                        </div>
                       ))}
                     </Box>
                     <Flex mt={4}>

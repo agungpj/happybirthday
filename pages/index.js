@@ -89,51 +89,54 @@ const Home = () => {
            
           </ModalContent>
         </Modal>
-        <div style={{display: 'flex', flexDirection: 'column'}}>
-        <Button
-            as={NextLink}
-            href="/profile"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-          >
-           Profile
-          </Button>
-        <Button
-            as={NextLink}
-            href="/works"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-
-          >
-           Mading
-          </Button>
-          
-        <Button
-            as={NextLink}
-            href="/posts"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-          >
-           Nabung
-          </Button>
-          <Button
-            as={NextLink}
-            href="/wallpapers"
-            scroll={false}
-            style={{margin: '10px 100px'}}
-            bg={bgValue}
-            css={{ backdropFilter: 'blur(2px)' }}
-          >
-           Game
-          </Button>
-        </div>
+        <div style={{ position: 'relative' }}>
+  <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <Button
+      as={NextLink}
+      href="/profile"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Profile
+    </Button>
+    <Button
+      as={NextLink}
+      href="/works"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Mading
+    </Button>
+    <Button
+      as={NextLink}
+      href="/posts"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Nabung
+    </Button>
+    <Button
+      as={NextLink}
+      href="/wallpapers"
+      scroll={false}
+      style={{ margin: '10px 100px' }}
+      bg={bgValue}
+      css={{ backdropFilter: 'blur(2px)' }}
+    >
+      Game
+    </Button>
+  </div>
+</div>
         <Box as="footer" role="contentinfo" py="6" textAlign="center">
+          <h1>
+          🐈‍⬛
+          </h1>
           <Text fontSize="sm" color="gray.600">
             &copy; 2023 Agung Prasetya. All rights reserved.
           </Text>

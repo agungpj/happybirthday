@@ -1,4 +1,3 @@
-import { forwardRef } from 'react'
 import Logo from './logo'
 import NextLink from 'next/link'
 import {
@@ -38,9 +37,7 @@ const LinkItem = ({ href, path, target, children, ...props }) => {
   )
 }
 
-const MenuLink = forwardRef((props, ref) => (
-  <Link ref={ref} as={NextLink} {...props} />
-))
+
 
 const Navbar = props => {
   const { path } = props
@@ -118,18 +115,9 @@ const Navbar = props => {
               {/* <MenuItem href="/profile" as={Link}>
                 Games
               </MenuItem> */}
-              <MenuItem href="/wallpaper" as={Link}>
+              <MenuItem href="/wallpapers" as={Link}>
                 Game
               </MenuItem>
-                <MenuItem as={MenuLink} href="https://uses.craftz.dog/">
-                  Uses
-                </MenuItem>
-                <MenuItem
-                  as={Link}
-                  href="https://github.com/craftzdog/craftzdog-homepage"
-                >
-                  View Source
-                </MenuItem>
               </MenuList>
             </Menu>
           </Box>

@@ -232,13 +232,30 @@ const Posts = () => {
       })
 
       const resolvedNotes = await Promise.all(notesData)
-      setNotes(resolvedNotes)
+      sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
+        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+        return dateB - dateA;
+    }))
+    
+
       setLoading(false)
     } catch (error) {
       console.error('Failed to fetch notes:', error)
     }
   }
 
+  function sortCommentsByTimestamp(data) {
+    data.forEach(item => {
+      item.comments.sort((a, b) => {
+        const timestampA = a.createdAt.seconds * 1000 + a.createdAt.nanoseconds / 1000000;
+        const timestampB = b.createdAt.seconds * 1000 + b.createdAt.nanoseconds / 1000000;
+        return timestampA - timestampB;
+      });
+    });
+    setNotes(data)
+  }
+  
   const handleButtonClick = () => {
     fileInputRef.current.click()
   }
@@ -747,7 +764,23 @@ const Posts = () => {
                           />
                         </div>
                       </Heading>
-
+                      {remainingTarget !== 0 ? (
+                        <h4
+                          style={{
+                            padding: '10px',
+                            fontFamily: '"M PLUS Rounded 1c", sans-serif'
+                          }}
+                        >
+                          Remaining Target:{' '}
+                          <span
+                            style={{ fontWeight: 'bolder' }}
+                          >{`Rp. ${remainingTarget.toLocaleString('id-ID', {
+                            maximumFractionDigits: 3
+                          })}`}</span>
+                        </h4>
+                      ) : (
+                        <></>
+                      )}
                       {progress ? (
                         progress?.map((item, index) => {
                           return (
@@ -775,23 +808,7 @@ const Posts = () => {
                       ) : (
                         <></>
                       )}
-                      {remainingTarget !== 0 ? (
-                        <h4
-                          style={{
-                            padding: '10px',
-                            fontFamily: '"M PLUS Rounded 1c", sans-serif'
-                          }}
-                        >
-                          Remaining Target:{' '}
-                          <span
-                            style={{ fontWeight: 'bolder' }}
-                          >{`Rp. ${remainingTarget.toLocaleString('id-ID', {
-                            maximumFractionDigits: 3
-                          })}`}</span>
-                        </h4>
-                      ) : (
-                        <></>
-                      )}
+                   
                     </Box>
                     <VStack mt={4} align="stretch" spacing={4}>
                       <Heading as="h4" size="md">

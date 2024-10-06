@@ -66,7 +66,7 @@ const Works = () => {
       setUser(getName);
       fetchNotes().catch(console.error);
     }
-  }, [user])
+  }, [fetchNotes, user])
 
   const handleFileChange = event => {
     const files = Array.from(event.target.files)
@@ -277,12 +277,7 @@ const Works = () => {
     }
   }
 
-  const uploadCommentImage = async file => {
-    const filename = `${Date.now()}-${file.name}`;
-    const storageRef = ref(storage, `comment-images/${filename}`);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
-  }
+ 
 
   const handleDownload = (url, filename) => {
     if (downloadRef.current) {

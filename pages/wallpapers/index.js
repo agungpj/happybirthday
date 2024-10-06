@@ -72,6 +72,7 @@ const Wallpapers = () => {
 
   const fetchNotes = async () => {
     try {
+      setLoading(true)
       const snapshot = await getDocs(collection(db, 'question'));
       const notesData = snapshot.docs.map(async docSnapshot => {
         const data = docSnapshot.data();
@@ -97,7 +98,7 @@ const Wallpapers = () => {
             };
           })
         );
-  
+        setLoading(false)
         return {
           id: docSnapshot.id,
           data,

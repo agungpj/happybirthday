@@ -189,7 +189,7 @@ const CardShuffler = ({card, reset, onUpdate}) => {
   const [currentQuestions, setCurrentQuestions] = useState([...questions]);
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200');
 
-  const someAction = async (data) => {
+  const someAction = async () => {
     // const newData = { /* some data */ };
     onUpdate("data"); // Mengirim data kembali ke komponen induk
 

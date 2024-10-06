@@ -76,7 +76,7 @@ const Posts = () => {
       setUser(getName);
       fetchNotes().catch(console.error);
     }
-  }, [user])
+  }, [user, fetchNotes])
 
   const handleFileChange = event => {
     const files = Array.from(event)

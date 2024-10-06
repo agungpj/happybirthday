@@ -46,6 +46,7 @@ import { BsThreeDotsVertical } from 'react-icons/bs'
 //   AlertDialogHeader
 //  } from '@chakra-ui/react';
 
+import { collection, addDoc, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 
 
 const Wallpapers = () => {
@@ -64,72 +65,60 @@ const Wallpapers = () => {
       setUser(getName);
     }
     
-  }, [user])
+  }, [user, notes])
 
-  useEffect(() => {
-    fetchNotes().catch(console.error);
-  }, [notes])
+  // useEffect(() => {
+  // }, [notes])
 
   const fetchNotes = async () => {
     try {
-      // setLoading(true)
-      const snapshot = await db.collection('question').get()
-      const notesData = snapshot.docs.map(async doc => {
-        const data = doc.data()
-
-        // Fetch user data for question
-        const userSnapshot = await db.collection('users').doc(data.user).get()
-        const userData = userSnapshot.data()
-
+      const snapshot = await getDocs(collection(db, 'question'));
+      const notesData = snapshot.docs.map(async docSnapshot => {
+        const data = docSnapshot.data();
+        
+        // Fetch user data for nabung
+        const userDocRef = doc(db, 'users', data.user);
+        const userSnapshot = await getDoc(userDocRef);
+        const userData = userSnapshot.data();
+        
         // Fetch comments
-        const commentsSnapshot = await db
-          .collection('question')
-          .doc(doc.id)
-          .collection('comments')
-          .get()
+        const commentsSnapshot = await getDocs(collection(db, 'question', docSnapshot.id, 'comments'));
         const commentsData = await Promise.all(
           commentsSnapshot.docs.map(async commentDoc => {
-            const commentData = commentDoc.data()
-
+            const commentData = commentDoc.data();
             // Fetch user data for each comment
-            const commentUserSnapshot = await db
-              .collection('users')
-              .doc(commentData.user)
-              .get()
-            const commentUserData = commentUserSnapshot.data()
-
+            const commentUserDocRef = doc(db, 'users', commentData.user);
+            const commentUserSnapshot = await getDoc(commentUserDocRef);
+            const commentUserData = commentUserSnapshot.data();
             return {
               id: commentDoc.id,
-              ...commentDoc.data(),
+              ...commentData,
               user: commentUserData
-            }
+            };
           })
-        )
-
+        );
+  
         return {
-          id: doc.id,
+          id: docSnapshot.id,
           data,
           user: userData,
           comments: commentsData
-        }
-      })
-
+        };
+      });
+  
       const resolvedNotes = await Promise.all(notesData)
-      if (notes.length == 0) {
-        setNotes(resolvedNotes)
+      sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
+        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+        return dateB - dateA;
+    }))
 
-        setLoading(false)
-
-      } else {
-        sortCommentsByTimestamp(resolvedNotes)
-        setLoading(false)
-
-      }
+    console.log("jalan", notesData)
 
     } catch (error) {
-      console.error('Failed to fetch notes:', error)
+      console.error('Failed to fetch notes:', error);
     }
-  }
+  };
 
   function sortCommentsByTimestamp(data) {
     data.forEach(item => {
@@ -144,17 +133,12 @@ const Wallpapers = () => {
     setNotes(data)
   }
 
-
   const handleAddComment = async (noteId) => {
     const newComment = comments[noteId]
     if (newComment.trim() === '') return
 
     try {
-      await db
-        .collection('question')
-        .doc(noteId)
-        .collection('comments')
-        .add({
+      await addDoc(collection(db, 'question', noteId, 'comments'), {
           text: newComment,
           createdAt: new Date(),
           user: localStorage.getItem('user')
@@ -172,12 +156,27 @@ const Wallpapers = () => {
 
   const handleDelete = async (id) => {
     try {
-      await db.collection('question').doc(id).delete()
+      console.log(id)
+      await deleteDoc(doc(db, 'question', id))
       fetchNotes()
     } catch (error) {
       alert(error.message)
     }
   }
+
+  const handleShuffleCardsUpdate = async (newData) => {
+    // Handle data returned from ShuffleCards
+    if(newData) {
+      fetchNotes();
+    }
+
+    if (newData?.question) { 
+      console.log("lewat sini?")
+      console.log(newData.question);
+    }
+
+  };
+
 
   return (
     <Layout title="Works">
@@ -237,7 +236,7 @@ const Wallpapers = () => {
           bg={bgValue}
           css={{ backdropFilter: 'blur(5px)' }}
         >
-        <ShuffleCards card={notes.length} />
+        <ShuffleCards card={notes.length} reset={notes[0]?.id} onUpdate={handleShuffleCardsUpdate} />
 
         </Box>
             {notes.map(

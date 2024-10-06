@@ -28,8 +28,11 @@ import {
   import Section from '../components/section'
   import { useEffect, useState, useRef } from 'react'
   import { db, storage } from '../firebase'
+import {  getDoc, doc, updateDoc } from 'firebase/firestore';
   import VoxelDog from '../components/voxel-dog'
   import imageCompression from 'browser-image-compression'
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
   
   const Profile = () => {
     const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
@@ -61,19 +64,21 @@ import {
     }, [users])
 
     const fetchUser = async () => {
-        try {
-          setLoading(true)
-          const userSnapshot = await db.collection('users').doc(localStorage.getItem('user')).get();
+      try {
+        setLoading(true);
+        const userDoc = doc(db, 'users', localStorage.getItem('user'));  // Referensi ke dokumen
+        const userSnapshot = await getDoc(userDoc);  // Mengambil data dokumen
+        if (userSnapshot.exists()) {
           const userData = userSnapshot.data();
           setUser({
-              name: userData.name,
-              photo: userData.photoUrls
-          })
-          setLoading(false)
-
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
+            name: userData.name,
+            photo: userData.photoUrls
+          });
         }
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
     };
 
     const handleFileChange = event => {
@@ -106,33 +111,24 @@ import {
         }
       }
     
-      const uploadImage = file => {
-        return new Promise((resolve, reject) => {
-          const filename = `${Date.now()}-${file.name}`
-          const storageRef = storage.ref().child(`images/${filename}`)
-          const uploadTask = storageRef.put(file)
-    
-          uploadTask.on(
-            'state_changed',
-            snapshot => {
-              const progress =
-                (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-              setUploadProgress(prevProgress => ({
-                ...prevProgress,
-                [file.name]: progress
-              }))
-              console.log(uploadProgress)
-            },
-            error => {
-              console.error('Upload failed:', error)
-              reject(error)
-            },
-            async () => {
-              const downloadURL = await uploadTask.snapshot.ref.getDownloadURL()
-              resolve(downloadURL)
-            }
-          )
-        })
+      const uploadImage = async file => {
+        const filename = `${Date.now()}-${file.name}`;
+        const storageRef = ref(storage, `images/${filename}`);
+        
+        try {
+          const snapshot = await uploadBytes(storageRef, file);
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(prevProgress => ({
+            ...prevProgress,
+            [file.name]: progress
+          }));
+          console.log(uploadProgress)
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          return downloadURL;
+        } catch (error) {
+          console.error('Upload failed:', error);
+          throw error;
+        }
       }
 
       const getImagePathFromUrl = url => {
@@ -142,40 +138,41 @@ import {
         return decodeURIComponent(path)
       }
     
-      const updateProfile = async photoUrls => {
+      const updateProfile = async (photoUrls) => {
         try {
-            setLoading(true)
-          await db.collection('users').doc(localStorage.getItem('user')).update({
+          setLoading(true);
+          const userDoc = doc(db, 'users', localStorage.getItem('user')); // Referensi ke dokumen
+          await updateDoc(userDoc, {
             name: tempName !== "" ? tempName : user.name,
             photoUrls: photoUrls !== undefined ? photoUrls : user.photo
           });
-          // Delete old images from storage
-        
+      
+          // Hapus gambar lama dari storage
           if (photoUrls) {
-            const storageRef = storage.ref()
-            const deletePromises = user.photo.map(url => {
-              const path = getImagePathFromUrl(url)
-              const imageRef = storageRef.child(path)
-              return imageRef.delete()
-            })
-            await Promise.all(deletePromises)
+            const deletePromises = user.photo.map((url) => {
+              const path = getImagePathFromUrl(url);
+              const imageRef = ref(storage, path); // Mendapatkan referensi file
+              return deleteObject(imageRef); // Hapus file
+            });
+            await Promise.all(deletePromises);
           }
-          setSuccess(true)
-          console.log(success)
-          openModal('Success Upload!', 'Profile has been updated')
-          setImages([])
-          setImagePreviews([])
+      
+          setSuccess(true);
+          console.log(success);
+          openModal('Success Upload!', 'Profile has been updated');
+          setImages([]);
+          setImagePreviews([]);
           setTimeout(() => {
-            setSuccess(false)
-          }, 2000)
-          onClose()
-          fetchUser()
-          setLoading(false)
+            setSuccess(false);
+          }, 2000);
+          onClose();
+          fetchUser();
+          setLoading(false);
         } catch (error) {
-          console.error('Error updating profile:', error)
-          openModal('Error', 'Failed to update profile. Please try again.')
+          console.error('Error updating profile:', error);
+          openModal('Error', 'Failed to update profile. Please try again.');
         }
-      }
+      };
     
       const openModal = (title, message) => {
         setModalTitle(title)

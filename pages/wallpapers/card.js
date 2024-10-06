@@ -6,6 +6,8 @@ import { db } from '../../firebase';
     useColorModeValue, 
     Button,
    } from '@chakra-ui/react';
+import { collection, addDoc, getDocs, doc, deleteDoc } from 'firebase/firestore';
+
 
 // Definisikan keyframes untuk animasi shuffle
 
@@ -182,20 +184,29 @@ const Card = styled.div`
 // `;
 
 
-const CardShuffler = ({card}) => {
+const CardShuffler = ({card, reset, onUpdate}) => {
   const [isAnimated, setIsAnimated] = useState(false);
   const [currentQuestions, setCurrentQuestions] = useState([...questions]);
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200');
 
-  
+  const someAction = async (data) => {
+    // const newData = { /* some data */ };
+    onUpdate("data"); // Mengirim data kembali ke komponen induk
+
+  };
+
 useEffect(() => {
    fetch()
   }, [card])
+
+
   
   const fetch = async () => {
     try {
-      const snapshots = await db.collection('question').get();
-      snapshots.docs.map(async () => { 
+      const snapshots = await getDocs(collection(db, 'question'));
+
+      snapshots.docs.forEach((item) => { 
+         console.log(item.data())
       })
     } catch (e) {
       console.log(e)
@@ -207,6 +218,7 @@ useEffect(() => {
     setIsAnimated(true);
     shuffleQuestions();
     createQ()
+    someAction()
   };
 
   const handleReset = () => {
@@ -226,12 +238,11 @@ useEffect(() => {
 
   const createQ = async () => {
     try {
-      
-      await db.collection('question').add({
+      await addDoc(collection(db, 'question'), {
         question: currentQuestions[0].question,
         user: localStorage.getItem('user'),
       });
-      fetchNotes();
+      // fetchNotes();
     } catch (error) {
       console.error('Error adding document:', error);
     }
@@ -239,14 +250,12 @@ useEffect(() => {
 
   const stopQ = async ()  => {
     try {
-      let data;
-      const snapshot = await db.collection('question').get();
-      snapshot.forEach((doc) => {
-        data = doc.id;
-      });
-      await db.collection('question').doc(data).delete();
+      console.log(reset)
+      await deleteDoc(doc(db, 'question', reset));
+      // fetchNotes();
+    someAction()
     } catch (error) {
-      console.log(e)
+      console.error('Error deleting document:', error);
     }
   }
 

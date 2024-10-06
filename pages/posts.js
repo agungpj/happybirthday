@@ -39,12 +39,13 @@ import Section from '../components/section'
 import { AttachmentIcon } from '@chakra-ui/icons'
 import { BsThreeDotsVertical } from 'react-icons/bs'
 import { useEffect, useState, useRef } from 'react'
-import { db, storage } from '../firebase'
-import firebase from 'firebase'
+import { collection, addDoc, getDocs, getDoc, doc, deleteDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import CurrencyInput from 'react-currency-input-field'
 import VoxelDog from '../components/voxel-dog'
 import imageCompression from 'browser-image-compression'
-
+// import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db, storage } from '../firebase'
 const Posts = () => {
   const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -106,81 +107,70 @@ const Posts = () => {
     }
   }
 
-  const uploadImage = file => {
-    return new Promise((resolve, reject) => {
-      const filename = `${Date.now()}-${file.name}`
-      const storageRef = storage.ref().child(`images/${filename}`)
-      const uploadTask = storageRef.put(file)
-
-      setDescription('')
-      setGoals(0)
-
-      uploadTask.on(
-        'state_changed',
-        snapshot => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          setUploadProgress(prevProgress => ({
-            ...prevProgress,
-            [file.name]: progress
-          }))
-          console.log(uploadProgress)
-        },
-        error => {
-          console.error('Upload failed:', error)
-          reject(error)
-        },
-        async () => {
-          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL()
-          resolve(downloadURL)
-        }
-      )
-    })
+  const uploadImage = async file => {
+    const filename = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `images/${filename}`);
+    
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      setUploadProgress(prevProgress => ({
+        ...prevProgress,
+        [file.name]: progress
+      }));
+      console.log(uploadProgress)
+      
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error('Upload failed:', error);
+      throw error;
+    }
   }
 
   const createChat = async photoUrls => {
     try {
-      await db.collection('nabung').add({
+      await addDoc(collection(db, 'nabung'), {
         chatName: description,
         target: goals,
         progress: 0,
         photoUrls,
         user: localStorage.getItem('user'),
         date: new Date()
-      })
-      openModal('Success Upload!', 'Mading telah ditambahkan')
-      setDescription('')
-      setGoals(0)
-      setImages([])
-      setImagePreviews([])
+      });
+      openModal('Success Upload!', 'Mading telah ditambahkan');
+      setDescription('');
+      setGoals(0);
+      setImages([]);
+      setImagePreviews([]);
       setTimeout(() => {
-      }, 2000)
-      fetchNotes()
+      }, 2000);
+      fetchNotes();
     } catch (error) {
-      console.error('Error adding document:', error)
-      openModal('Error', 'Failed to add document. Please try again.')
+      console.error('Error adding document:', error);
+      openModal('Error', 'Failed to add document. Please try again.');
     }
   }
 
   const handleDelete = async (id, photoUrls) => {
     try {
       if (photoUrls) {
-        const storageRef = storage.ref()
         const deletePromises = photoUrls.map(url => {
-          const path = getImagePathFromUrl(url)
-          const imageRef = storageRef.child(path)
-          return imageRef.delete()
-        })
-        await Promise.all(deletePromises)
+          const path = getImagePathFromUrl(url);
+          const imageRef = ref(storage, path);
+          return deleteObject(imageRef);
+        });
+        await Promise.all(deletePromises);
       }
 
-      await db.collection('nabung').doc(id).delete()
-      fetchNotes()
+      await deleteDoc(doc(db, 'nabung', id));
+      fetchNotes();
     } catch (error) {
-      alert(error.message)
-      setAlert(error.message)
+      alert(error.message);
+      setAlert(error.message);
     }
   }
+
 
   const getImagePathFromUrl = url => {
     const baseUrl =
@@ -191,59 +181,53 @@ const Posts = () => {
 
   const fetchNotes = async () => {
     try {
-      setLoading(true)
-      const snapshot = await db.collection('nabung').get()
-      const notesData = snapshot.docs.map(async doc => {
-        const data = doc.data()
-
+      setLoading(true);
+      const snapshot = await getDocs(collection(db, 'nabung'));
+      const notesData = snapshot.docs.map(async docSnapshot => {
+        const data = docSnapshot.data();
+        
         // Fetch user data for nabung
-        const userSnapshot = await db.collection('users').doc(data.user).get()
-        const userData = userSnapshot.data()
-
+        const userDocRef = doc(db, 'users', data.user);
+        const userSnapshot = await getDoc(userDocRef);
+        const userData = userSnapshot.data();
+  
         // Fetch comments
-        const commentsSnapshot = await db
-          .collection('nabung')
-          .doc(doc.id)
-          .collection('comments')
-          .get()
+        const commentsSnapshot = await getDocs(collection(db, 'nabung', docSnapshot.id, 'comments'));
         const commentsData = await Promise.all(
           commentsSnapshot.docs.map(async commentDoc => {
-            const commentData = commentDoc.data()
+            const commentData = commentDoc.data();
             // Fetch user data for each comment
-            const commentUserSnapshot = await db
-              .collection('users')
-              .doc(commentData.user)
-              .get()
-            const commentUserData = commentUserSnapshot.data()
+            const commentUserDocRef = doc(db, 'users', commentData.user);
+            const commentUserSnapshot = await getDoc(commentUserDocRef);
+            const commentUserData = commentUserSnapshot.data();
             return {
               id: commentDoc.id,
-              ...commentDoc.data(),
+              ...commentData,
               user: commentUserData
-            }
+            };
           })
-        )
-
+        );
+  
         return {
-          id: doc.id,
+          id: docSnapshot.id,
           data,
           user: userData,
           comments: commentsData
-        }
-      })
-
+        };
+      });
+  
       const resolvedNotes = await Promise.all(notesData)
       sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
         const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
         const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
         return dateB - dateA;
     }))
-    
-
-      setLoading(false)
+      setLoading(false);
     } catch (error) {
-      console.error('Failed to fetch notes:', error)
+      console.error('Failed to fetch notes:', error);
+      setLoading(false);
     }
-  }
+  };
 
   function sortCommentsByTimestamp(data) {
     data.forEach(item => {
@@ -255,7 +239,7 @@ const Posts = () => {
     });
     setNotes(data)
   }
-  
+
   const handleButtonClick = () => {
     fileInputRef.current.click()
   }
@@ -276,69 +260,82 @@ const Posts = () => {
       (!newComments[noteId] || newComments[noteId].trim() === '') &&
       !commentImages[noteId]
     )
-      return
+      return;
 
     try {
-      setLoading(true)
+      setLoading(true);
 
-      let imageUrl = null
+      let imageUrl = null;
       if (commentImages[noteId]) {
-        imageUrl = await uploadCommentImage(commentImages[noteId])
+        imageUrl = await uploadCommentImage(commentImages[noteId]);
       }
 
-      await db
-        .collection('nabung')
-        .doc(noteId)
-        .collection('comments')
-        .add({
-          text: newComments[noteId] || '',
-          imageUrl: imageUrl,
-          createdAt: new Date(),
-          user: localStorage.getItem('user')
-        })
+      await addDoc(collection(db, 'nabung', noteId, 'comments'), {
+        text: newComments[noteId] || '',
+        imageUrl: imageUrl,
+        createdAt: new Date(),
+        user: localStorage.getItem('user')
+      });
 
       // Reset comment input and image
       setNewComments(prevComments => ({
         ...prevComments,
         [noteId]: ''
-      }))
+      }));
       setCommentImages(prevImages => ({
         ...prevImages,
         [noteId]: null
-      }))
-      setLoading(false)
-      fetchNotes()
+      }));
+      setLoading(false);
+      fetchNotes();
     } catch (error) {
-      console.error('Error adding comment:', error)
+      console.error('Error adding comment:', error);
     }
   }
-
-  
 
   const handleUpdate = async () => {
     try {
       const p = {
         date: new Date(),
         progress: Number(progress)
-      }
-      await db
-        .collection('nabung')
-        .doc(ids)
-        .update({
-          // progress: {
-          //   progress: firebase.firestore.FieldValue.arrayUnion(progress),
-          //   date: Date.now()
-          // },
-          progress: firebase.firestore.FieldValue.arrayUnion(p)
-        })
-      onClose()
-      setIds('')
-      // await db.collection('mading').doc(id).updat()
-      fetchNotes()
+      };
+      await updateDoc(doc(db, 'nabung', ids), {
+        progress: arrayUnion(p)
+      });
+      onClose();
+      setIds('');
+      fetchNotes();
     } catch (error) {
-      // alert(error.message)
+      // handle error
     }
   }
+
+  
+
+  // const handleUpdate = async () => {
+  //   try {
+  //     const p = {
+  //       date: new Date(),
+  //       progress: Number(progress)
+  //     }
+  //     await db
+  //       .collection('nabung')
+  //       .doc(ids)
+  //       .update({
+  //         // progress: {
+  //         //   progress: firebase.firestore.FieldValue.arrayUnion(progress),
+  //         //   date: Date.now()
+  //         // },
+  //         progress: firebase.firestore.FieldValue.arrayUnion(p)
+  //       })
+  //     onClose()
+  //     setIds('')
+  //     // await db.collection('mading').doc(id).updat()
+  //     fetchNotes()
+  //   } catch (error) {
+  //     // alert(error.message)
+  //   }
+  // }
 
   const handleOpenUpdate = async id => {
     onOpen()
@@ -373,11 +370,18 @@ const Posts = () => {
     }
   }
 
+  // const uploadCommentImage = async file => {
+  //   const filename = `${Date.now()}-${file.name}`
+  //   const storageRef = storage.ref().child(`comment-images/${filename}`)
+  //   await storageRef.put(file)
+  //   return await storageRef.getDownloadURL()
+  // }
+
   const uploadCommentImage = async file => {
-    const filename = `${Date.now()}-${file.name}`
-    const storageRef = storage.ref().child(`comment-images/${filename}`)
-    await storageRef.put(file)
-    return await storageRef.getDownloadURL()
+    const filename = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `comment-images/${filename}`);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
   }
 
   const handleDownloadImage = async (url, filename) => {

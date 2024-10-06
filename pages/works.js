@@ -34,6 +34,8 @@ import { AttachmentIcon } from '@chakra-ui/icons'
 import { BsThreeDotsVertical } from 'react-icons/bs'
 import { useEffect, useState, useRef } from 'react'
 import { db, storage } from '../firebase'
+import { collection, addDoc, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import VoxelDog from '../components/voxel-dog'
 
 const Works = () => {
@@ -95,46 +97,36 @@ const Works = () => {
     }
   }
 
-  const uploadImage = file => {
-    return new Promise((resolve, reject) => {
-      const filename = `${Date.now()}-${file.name}`
-      const storageRef = storage.ref().child(`images/${filename}`)
-      const uploadTask = storageRef.put(file)
-
-      setDescription('')
-
-      uploadTask.on(
-        'state_changed',
-        snapshot => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          setUploadProgress(prevProgress => ({
-            ...prevProgress,
-            [file.name]: progress
-          }))
-          console.log(success, uploadProgress)
-        },
-        error => {
-          console.error('Upload failed:', error)
-          reject(error)
-        },
-        async () => {
-          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL()
-          resolve(downloadURL)
-        }
-      )
-    })
+  const uploadImage = async file => {
+    const filename = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `images/${filename}`);
+    
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      setUploadProgress(prevProgress => ({
+        ...prevProgress,
+        [file.name]: progress
+      }));
+      console.log(uploadProgress)
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error('Upload failed:', error);
+      throw error;
+    }
   }
 
   const createChat = async photoUrls => {
     try {
-      await db.collection('mading').add({
+      await addDoc(collection(db, 'mading'), {
         maddingName: description,
         photoUrls,
         user: localStorage.getItem('user'),
         date: new Date()
       })
       setSuccess(true)
+      console.log(success)
       openModal('Success Upload!', 'Mading telah ditambahkan')
       setDescription('')
       setImages([])
@@ -152,21 +144,22 @@ const Works = () => {
   const handleDelete = async (id, photoUrls) => {
     try {
       if (photoUrls) {
-        const storageRef = storage.ref()
         const deletePromises = photoUrls.map(url => {
-          const path = getImagePathFromUrl(url)
-          const imageRef = storageRef.child(path)
-          return imageRef.delete()
-        })
-        await Promise.all(deletePromises)
+          const path = getImagePathFromUrl(url);
+          const imageRef = ref(storage, path);
+          return deleteObject(imageRef);
+        });
+        await Promise.all(deletePromises);
       }
 
-      await db.collection('mading').doc(id).delete()
-      fetchNotes()
+      await deleteDoc(doc(db, 'mading', id));
+      fetchNotes();
     } catch (error) {
-      alert(error.message)
+      alert(error.message);
+      setAlert(error.message);
     }
   }
+
 
   const getImagePathFromUrl = url => {
     const baseUrl =
@@ -177,57 +170,50 @@ const Works = () => {
 
   const fetchNotes = async () => {
     try {
-      const snapshot = await db.collection('mading').get()
-      const notesData = snapshot.docs.map(async doc => {
-        const data = doc.data()
-
-        // Fetch user data for mading
-        const userSnapshot = await db.collection('users').doc(data.user).get()
-        const userData = userSnapshot.data()
-
+      const snapshot = await getDocs(collection(db, 'mading'));
+      const notesData = snapshot.docs.map(async docSnapshot => {
+        const data = docSnapshot.data();
+        
+        // Fetch user data for nabung
+        const userDocRef = doc(db, 'users', data.user);
+        const userSnapshot = await getDoc(userDocRef);
+        const userData = userSnapshot.data();
+  
         // Fetch comments
-        const commentsSnapshot = await db
-          .collection('mading')
-          .doc(doc.id)
-          .collection('comments')
-          .get()
+        const commentsSnapshot = await getDocs(collection(db, 'mading', docSnapshot.id, 'comments'));
         const commentsData = await Promise.all(
           commentsSnapshot.docs.map(async commentDoc => {
-            const commentData = commentDoc.data()
-
+            const commentData = commentDoc.data();
             // Fetch user data for each comment
-            const commentUserSnapshot = await db
-              .collection('users')
-              .doc(commentData.user)
-              .get()
-            const commentUserData = commentUserSnapshot.data()
-
+            const commentUserDocRef = doc(db, 'users', commentData.user);
+            const commentUserSnapshot = await getDoc(commentUserDocRef);
+            const commentUserData = commentUserSnapshot.data();
             return {
               id: commentDoc.id,
-              ...commentDoc.data(),
+              ...commentData,
               user: commentUserData
-            }
+            };
           })
-        )
-
+        );
+  
         return {
-          id: doc.id,
+          id: docSnapshot.id,
           data,
           user: userData,
           comments: commentsData
-        }
-      })
-
+        };
+      });
+  
       const resolvedNotes = await Promise.all(notesData)
-    sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
-      const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
-      const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
-      return dateB - dateA;
-  }))
+      sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
+        const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+        const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+        return dateB - dateA;
+    }))
     } catch (error) {
-      console.error('Failed to fetch notes:', error)
+      console.error('Failed to fetch notes:', error);
     }
-  }
+  };
 
   function sortCommentsByTimestamp(data) {
     data.forEach(item => {
@@ -257,26 +243,45 @@ const Works = () => {
   }
 
   const handleAddComment = async noteId => {
-    if (!newComments[noteId] || newComments[noteId].trim() === '') return
+    if (
+      (!newComments[noteId] || newComments[noteId].trim() === '') 
+    )
+      return;
 
     try {
-      await db
-        .collection('mading')
-        .doc(noteId)
-        .collection('comments')
-        .add({
-          text: newComments[noteId],
-          createdAt: new Date(),
-          user: localStorage.getItem('user')
-        })
+
+      let imageUrl = null;
+      // if (commentImages[noteId]) {
+      //   imageUrl = await uploadCommentImage(commentImages[noteId]);
+      // }
+
+      await addDoc(collection(db, 'mading', noteId, 'comments'), {
+        text: newComments[noteId] || '',
+        imageUrl: imageUrl,
+        createdAt: new Date(),
+        user: localStorage.getItem('user')
+      });
+
+      // Reset comment input and image
       setNewComments(prevComments => ({
         ...prevComments,
-        [noteId]: '' // Clear the comment input for this mading
-      }))
-      fetchNotes()
+        [noteId]: ''
+      }));
+      // setCommentImages(prevImages => ({
+      //   ...prevImages,
+      //   [noteId]: null
+      // }));
+      fetchNotes();
     } catch (error) {
-      console.error('Error adding comment:', error)
+      console.error('Error adding comment:', error);
     }
+  }
+
+  const uploadCommentImage = async file => {
+    const filename = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `comment-images/${filename}`);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
   }
 
   const handleDownload = (url, filename) => {

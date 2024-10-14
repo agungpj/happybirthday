@@ -189,9 +189,9 @@ const CardShuffler = ({card, reset, onUpdate}) => {
   const [currentQuestions, setCurrentQuestions] = useState([...questions]);
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200');
 
-  const someAction = async () => {
+  const someAction = async (params) => {
     // const newData = { /* some data */ };
-    onUpdate("data"); // Mengirim data kembali ke komponen induk
+    onUpdate(params); // Mengirim data kembali ke komponen induk
 
   };
 
@@ -218,7 +218,7 @@ useEffect(() => {
     setIsAnimated(true);
     shuffleQuestions();
     createQ()
-    someAction()
+    someAction("shuffle")
   };
 
   const handleReset = () => {
@@ -253,7 +253,7 @@ useEffect(() => {
       console.log(reset)
       await deleteDoc(doc(db, 'question', reset));
       // fetchNotes();
-    someAction()
+    someAction("reset")
     } catch (error) {
       console.error('Error deleting document:', error);
     }

@@ -55,7 +55,6 @@ const Wallpapers = () => {
   const [notes, setNotes] = useState([])
   const [comments, setComments] = useState({})
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
@@ -63,16 +62,16 @@ const Wallpapers = () => {
       window.location.href = '/';
     } else {
       setUser(getName);
+      fetchNotes().catch(console.error);
     }
-    
-  }, [user, notes])
+    // handleShuffleCardsUpdate()
+  }, [user])
 
   // useEffect(() => {
   // }, [notes])
 
-  const fetchNotes = async () => {
+  const fetchNotes = async (params = false) => {
     try {
-      setLoading(true)
       const snapshot = await getDocs(collection(db, 'question'));
       const notesData = snapshot.docs.map(async docSnapshot => {
         const data = docSnapshot.data();
@@ -98,7 +97,6 @@ const Wallpapers = () => {
             };
           })
         );
-        setLoading(false)
         return {
           id: docSnapshot.id,
           data,
@@ -108,13 +106,24 @@ const Wallpapers = () => {
       });
   
       const resolvedNotes = await Promise.all(notesData)
+      console.log(params)
+    if(params) {
+      setTimeout(() => {
+        sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
+          const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
+          const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
+          return dateB - dateA;
+      }))
+    }, 3000); 
+    } else {
       sortCommentsByTimestamp(resolvedNotes.sort((a, b) => {
         const dateA = new Date(a.data.date.seconds * 1000 + a.data.date.nanoseconds / 1000000);
         const dateB = new Date(b.data.date.seconds * 1000 + b.data.date.nanoseconds / 1000000);
         return dateB - dateA;
     }))
+    }
+    
 
-    console.log("jalan", notesData)
 
     } catch (error) {
       console.error('Failed to fetch notes:', error);
@@ -123,16 +132,20 @@ const Wallpapers = () => {
 
   function sortCommentsByTimestamp(data) {
     data.forEach(item => {
-      item.comments.sort((a, b) => {
-        // Calculate the total milliseconds for each createdAt timestamp
-        const timestampA = a.createdAt.seconds * 1000 + a.createdAt.nanoseconds / 1000000;
-        const timestampB = b.createdAt.seconds * 1000 + b.createdAt.nanoseconds / 1000000;
-        // Sort in ascending order
-        return timestampA - timestampB;
-      });
+        item.comments.sort((a, b) => {
+            // Calculate the total milliseconds for each createdAt timestamp
+            const timestampA = a.createdAt.seconds * 1000 + a.createdAt.nanoseconds / 1000000;
+            const timestampB = b.createdAt.seconds * 1000 + b.createdAt.nanoseconds / 1000000;
+            // Sort in ascending order
+            return timestampA - timestampB;
+        });
     });
-    setNotes(data)
-  }
+
+    // Correct setTimeout usage
+    // console.log
+   
+        setNotes(data); // Call setNotes after 30 seconds
+}
 
   const handleAddComment = async (noteId) => {
     const newComment = comments[noteId]
@@ -155,6 +168,7 @@ const Wallpapers = () => {
     setComments({ ...comments, [noteId]: value })
   }
 
+
   const handleDelete = async (id) => {
     try {
       console.log(id)
@@ -165,16 +179,19 @@ const Wallpapers = () => {
     }
   }
 
-  const handleShuffleCardsUpdate = async (newData) => {
+  const handleShuffleCardsUpdate = async (params) => {
     // Handle data returned from ShuffleCards
-    if(newData) {
+    console.log("lewat")
+    console.log(params)
+    if(params === "shuffle") {
+      setTimeout(() => {
+        fetchNotes();
+      }, 3000)
+    } else {
       fetchNotes();
+
     }
 
-    if (newData?.question) { 
-      console.log("lewat sini?")
-      console.log(newData.question);
-    }
 
   };
 
@@ -182,51 +199,6 @@ const Wallpapers = () => {
   return (
     <Layout title="Works">
       <VoxelDog rotate={20} />
-      {loading ? (
-        // <Modal isOpen={loading}>
-        //   <ModalOverlay />
-        //   <ModalContent>
-
-        //     <ModalCloseButton />
-        //     <ModalBody>
-        //       <Center>
-        //         <Spinner />
-        //         <ModalHeader>Loading...</ModalHeader>
-        //       </Center>
-        //     </ModalBody>
-        //   </ModalContent>
-        // </Modal>
-
-        <AlertDialog
-          isOpen={loading}
-          // leastDestructiveRef={cancelRef}
-          onClose={onClose}
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                <Center>
-                  <Spinner />
-                  <ModalHeader>Loading...</ModalHeader>
-                </Center>
-              </AlertDialogHeader>
-
-              {/* <AlertDialogBody>
-            Are you sure? You can't undo this action afterwards.
-          </AlertDialogBody> */}
-
-              {/* <AlertDialogFooter>
-            <Button ref={cancelRef} onClick={onClose}>
-              Cancel
-            </Button>
-            <Button colorScheme='red' onClick={onClose} ml={3}>
-              Delete
-            </Button>
-          </AlertDialogFooter> */}
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
-      ) : (
         <>
           <Container>
           <Box
@@ -349,7 +321,6 @@ const Wallpapers = () => {
             </ModalContent>
           </Modal>
         </>
-      )}
     </Layout>
   )
 }

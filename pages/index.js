@@ -63,7 +63,17 @@ const Home = () => {
       
       onMessage(messaging, (payload) => {
         console.log('Received message:', payload)
-        toast(payload.notification?.body)
+        toast(
+          <>
+          <strong>{payload.notification?.title}</strong>
+          <br></br>
+          {payload.notification?.body}
+          </>,
+          
+          {
+            // icon: <Icon />,
+          }
+        );
       })
     } catch (error) {
       console.error('Error initializing messaging:', error)

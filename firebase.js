@@ -33,7 +33,7 @@ export const generateToken = async (title, body) => {
     console.log(permission)
     if(permission === "granted") {
       const token = await getToken(messaging, {
-        vapidKey: "BIhXHGKp9qf6aY0QedAoPGDTa2d3y-qpX2ZyVLlFshrQldkzc7FZTuiWc4E8idE9zy58qc34i4HEDStoaMveQgo"
+        vapidKey: process.env.VAPID_KEY
       })
       console.log(token)
       const result = await sendNotification(

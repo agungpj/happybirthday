@@ -1,12 +1,15 @@
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./agung2-apps-firebase-adminsdk-hyt3j-9e35a14dc8.json");
+const serviceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  clientId: process.env.FIREBASE_CLIENT_ID,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY_ENCODED.replace(/\\n/g, '\n'),
+};
 
 if (!admin.apps.length) {
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-//   databaseURL: "https://your-project-id.firebaseio.com"
-});
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
 }
 export const messaging = admin.messaging();
-

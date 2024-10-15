@@ -40,6 +40,23 @@ const Home = () => {
     if (userFromStorage) {
       setShowLoginModal(false)
     }
+    const listenToMessages = async () => {
+      await registerServiceWorker();
+      onMessage(messaging, (payload) => {
+        console.log('Pesan diterima:', payload);
+        toast(
+          <>
+            <strong>{payload.notification?.title}</strong>
+            <br />
+            {payload.notification?.body}
+          </>,
+          {
+            icon: '🔔',
+          }
+        );
+      });
+    };
+    listenToMessages();
   }, [user])
 
   const handleEnter = () => {

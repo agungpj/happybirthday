@@ -28,6 +28,7 @@ const sendNotification = async (token, notification) => {
         res.status(200).json({ success: true, result });
       } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+        res.status(405).json({ success: false, error: error });
       }
     } else {
       res.setHeader('Allow', ['POST']);

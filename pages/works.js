@@ -37,6 +37,8 @@ import { db, storage } from '../firebase'
 import { collection, addDoc, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import VoxelDog from '../components/voxel-dog'
+import useFcmToken from './useFcmToken'
+
 
 const Works = () => {
   const bgValue = useColorModeValue('whiteAlpha.500', 'whiteAlpha.200')
@@ -52,11 +54,44 @@ const Works = () => {
   const [newComments, setNewComments] = useState({})
   const fileInputRef = useRef(null)
   const [user, setUser] = useState(null)
+  const [username, setUsername] = useState('')
 
   const downloadRef = useRef(null)
   const OverlayOne = () => (
     <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
   )
+
+  const { token } = useFcmToken();
+
+  const fetchUser = async () => {
+    const userId = localStorage.getItem('user');
+    if (userId) {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        // console.log(userDoc.data())
+        const user = userDoc.data()
+        setUsername(user.name)
+      }
+    }
+  }
+  
+  const handleNotification = async (message, title = "🌈💥 Agung & Ayu 💫 🌸") => {
+    const response = await fetch('/api/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        title: title,
+        message: message,
+        link: "/works",
+      }),
+    });
+
+    const data = await response.json();
+    console.log(data);
+  };
 
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
@@ -64,6 +99,7 @@ const Works = () => {
       window.location.href = '/';
     } else {
       setUser(getName);
+      fetchUser()
       fetchNotes().catch(console.error);
     }
   }, [user])
@@ -92,6 +128,7 @@ const Works = () => {
     try {
       const urls = await Promise.all(promises)
       createChat(urls)
+      handleNotification(`${username} telah menambahkan mading`)
     } catch (error) {
       console.error('Upload failed:', error)
     }
@@ -254,7 +291,7 @@ const Works = () => {
       // if (commentImages[noteId]) {
       //   imageUrl = await uploadCommentImage(commentImages[noteId]);
       // }
-
+      handleNotification(`${username} : ${newComments[noteId]}`, `${username} menambahkan komentar`)
       await addDoc(collection(db, 'mading', noteId, 'comments'), {
         text: newComments[noteId] || '',
         imageUrl: imageUrl,

@@ -39,6 +39,7 @@ import { BsThreeDotsVertical } from 'react-icons/bs'
 //   AlertDialogContent,
 //   AlertDialogHeader
 //  } from '@chakra-ui/react';
+import useFcmToken from '../useFcmToken'
 
 import { collection, addDoc, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 
@@ -49,13 +50,47 @@ const Wallpapers = () => {
   const [notes, setNotes] = useState([])
   const [comments, setComments] = useState({})
   const [user, setUser] = useState(null)
+  const [username, setUsername] = useState('')
 
+  
+  const { token } = useFcmToken();
+
+  const fetchUser = async () => {
+    const userId = localStorage.getItem('user');
+    if (userId) {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        // console.log(userDoc.data())
+        const user = userDoc.data()
+        setUsername(user.name)
+      }
+    }
+  }
+  
+  const handleNotification = async (message, title = "🌈💥 Agung & Ayu 💫 🌸") => {
+    const response = await fetch('/api/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        title: title,
+        message: message,
+        link: "/works",
+      }),
+    });
+
+    const data = await response.json();
+    console.log(data);
+  };
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
     if (!getName) {
       window.location.href = '/';
     } else {
       setUser(getName);
+      fetchUser()
       fetchNotes().catch(console.error);
     }
     // handleShuffleCardsUpdate()
@@ -146,6 +181,8 @@ const Wallpapers = () => {
     if (newComment.trim() === '') return
 
     try {
+      handleNotification(`${username} : ${newComment}`, `${username} menambahkan komentar`)
+
       await addDoc(collection(db, 'question', noteId, 'comments'), {
           text: newComment,
           createdAt: new Date(),
@@ -177,9 +214,14 @@ const Wallpapers = () => {
     // Handle data returned from ShuffleCards
     console.log("lewat")
     console.log(params)
-    if(params === "shuffle") {
+    if(params) {
       setTimeout(() => {
         fetchNotes();
+        if(params !== "reset" && params !== "") {
+          console.log(params)
+          handleNotification(params, `${username} memulai game.`)
+        }
+        
       }, 3000)
     } else {
       fetchNotes();

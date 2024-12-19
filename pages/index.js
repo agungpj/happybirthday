@@ -16,9 +16,12 @@ import {
 import Layout from '../components/layouts/article'
 import { useState, useEffect, useRef } from 'react'
 import VoxelDog from '../components/voxel-dog'
-import { generateToken, messaging, registerServiceWorker } from '../firebase'
-import { onMessage } from 'firebase/messaging'
+import { getMessaging, getToken } from 'firebase/messaging'
 import toast, { Toaster } from 'react-hot-toast'
+import useFcmToken from './useFcmToken'
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase'
+
 
 const Home = () => {
   const [name, setName] = useState('')
@@ -34,29 +37,73 @@ const Home = () => {
   const [showNotifModal, setShowNotifModal] = useState(false)
   const [buttonNotif, setButtonNotif] = useState(false)
 
+  const { token } = useFcmToken();
+ 
+  const fetchUser = async () => {
+    const userId = localStorage.getItem('user');
+    if (userId) {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const user = userDoc.data()
+      }
+    }
+  }
+  
+  const handleNotification = async (message, title = "🌈💥 Agung & Ayu 💫 🌸") => {
+    const response = await fetch('/api/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        title: title,
+        message: message,
+        link: "/works",
+      }),
+    });
+
+    const data = await response.json();
+    console.log(data)
+    toast(
+      <>
+        <strong>{data.message.title}</strong>
+        <br />
+        {data.message.body}
+      </>,
+      {
+        icon: '🔔',
+      }
+    );
+  };
+
+  
+  const subscribeToTopic = async () => {
+    const messaging = getMessaging();
+    try {
+      const token = await getToken(messaging, { vapidKey: "BIhXHGKp9qf6aY0QedAoPGDTa2d3y-qpX2ZyVLlFshrQldkzc7FZTuiWc4E8idE9zy58qc34i4HEDStoaMveQgo" });
+      if (token) {
+        await fetch("/api/topic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, topic: "general" }),
+        });
+      }
+    } catch (error) {
+      console.error("Failed to subscribe to topic:", error);
+    }
+  };
+  
+
   useEffect(() => {
     const userFromStorage = localStorage.getItem('user')
+    subscribeToTopic();
     setUser(userFromStorage)
     if (userFromStorage) {
       setShowLoginModal(false)
+      fetchUser()
+
     }
-    const listenToMessages = async () => {
-      await registerServiceWorker();
-      onMessage(messaging, (payload) => {
-        console.log('Pesan diterima:', payload);
-        toast(
-          <>
-            <strong>{payload.notification?.title}</strong>
-            <br />
-            {payload.notification?.body}
-          </>,
-          {
-            icon: '🔔',
-          }
-        );
-      });
-    };
-    listenToMessages();
   }, [user])
 
   const handleEnter = () => {
@@ -72,30 +119,6 @@ const Home = () => {
     }
   }
 
-  const initMessaging = async (title, body) => {
-    try {
-      await registerServiceWorker()
-      const token = await generateToken(title, body)
-      console.log('FCM Token:', token)
-      
-      onMessage(messaging, (payload) => {
-        console.log('Received message:', payload)
-        toast(
-          <>
-          <strong>{payload.notification?.title}</strong>
-          <br></br>
-          {payload.notification?.body}
-          </>,
-          
-          {
-            // icon: <Icon />,
-          }
-        );
-      })
-    } catch (error) {
-      console.error('Error initializing messaging:', error)
-    }
-  }
 
   return (
     <Layout>
@@ -163,8 +186,7 @@ const Home = () => {
               </Box>
               <Button
                 onClick={() => {
-                  // generateToken(notification.title, notification.body)
-                  initMessaging(notification.title, notification.body)
+                  handleNotification(notification.body, `🌈💥${notification.title} 💫 🌸`)
                   setShowNotifModal(false)
                 }}
                 colorScheme="teal"

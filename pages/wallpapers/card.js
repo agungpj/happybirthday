@@ -218,7 +218,7 @@ useEffect(() => {
     setIsAnimated(true);
     shuffleQuestions();
     createQ()
-    someAction("shuffle")
+    someAction(currentQuestions[0].question)
   };
 
   const handleReset = () => {
@@ -238,10 +238,13 @@ useEffect(() => {
 
   const createQ = async () => {
     try {
-      await addDoc(collection(db, 'question'), {
-        question: currentQuestions[0].question,
-        user: localStorage.getItem('user'),
-      });
+      if(currentQuestions[0].question !== '') {
+        await addDoc(collection(db, 'question'), {
+          question: currentQuestions[0].question,
+          user: localStorage.getItem('user'),
+        });
+      }
+      
       // fetchNotes();
     } catch (error) {
       console.error('Error adding document:', error);

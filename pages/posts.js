@@ -44,8 +44,9 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import CurrencyInput from 'react-currency-input-field'
 import VoxelDog from '../components/voxel-dog'
 import imageCompression from 'browser-image-compression'
-// import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from '../firebase'
+import useFcmToken from './useFcmToken'
+
 const Posts = () => {
   const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -67,6 +68,38 @@ const Posts = () => {
   const [loading, setLoading] = useState(false)
   const [imgPreview, setImgPreview] = useState([])
   const [user, setUser] = useState(null)
+  const [username, setUsername] = useState('')
+
+  
+  const { token } = useFcmToken();
+
+  const fetchUser = async () => {
+    const userId = localStorage.getItem('user');
+    if (userId) {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const user = userDoc.data()
+        setUsername(user.name)
+      }
+    }
+  }
+  
+  const handleNotification = async (message, title = "🌈💥 Agung & Ayu 💫 🌸") => {
+    const response = await fetch('/api/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        title: title,
+        message: message,
+        link: "/works",
+      }),
+    });
+
+    const data = await response.json();
+  };
 
   useEffect(() => {
     const getName = localStorage.getItem('user') || null;
@@ -74,6 +107,7 @@ const Posts = () => {
       window.location.href = '/';
     } else {
       setUser(getName);
+      fetchUser()
       fetchNotes().catch(console.error);
     }
   }, [user])
@@ -102,6 +136,8 @@ const Posts = () => {
     try {
       const urls = await Promise.all(promises)
       createChat(urls)
+      handleNotification(`${username} telah menambahkan wishlist`)
+
     } catch (error) {
       console.error('Upload failed:', error)
     }
@@ -270,6 +306,8 @@ const Posts = () => {
         imageUrl = await uploadCommentImage(commentImages[noteId]);
       }
 
+      handleNotification(`${username} : ${newComments[noteId]}`, `${username} menambahkan komentar`)
+
       await addDoc(collection(db, 'nabung', noteId, 'comments'), {
         text: newComments[noteId] || '',
         imageUrl: imageUrl,
@@ -312,31 +350,6 @@ const Posts = () => {
 
   
 
-  // const handleUpdate = async () => {
-  //   try {
-  //     const p = {
-  //       date: new Date(),
-  //       progress: Number(progress)
-  //     }
-  //     await db
-  //       .collection('nabung')
-  //       .doc(ids)
-  //       .update({
-  //         // progress: {
-  //         //   progress: firebase.firestore.FieldValue.arrayUnion(progress),
-  //         //   date: Date.now()
-  //         // },
-  //         progress: firebase.firestore.FieldValue.arrayUnion(p)
-  //       })
-  //     onClose()
-  //     setIds('')
-  //     // await db.collection('mading').doc(id).updat()
-  //     fetchNotes()
-  //   } catch (error) {
-  //     // alert(error.message)
-  //   }
-  // }
-
   const handleOpenUpdate = async id => {
     onOpen()
     setIds(id)
@@ -369,13 +382,6 @@ const Posts = () => {
       console.log(e)
     }
   }
-
-  // const uploadCommentImage = async file => {
-  //   const filename = `${Date.now()}-${file.name}`
-  //   const storageRef = storage.ref().child(`comment-images/${filename}`)
-  //   await storageRef.put(file)
-  //   return await storageRef.getDownloadURL()
-  // }
 
   const uploadCommentImage = async file => {
     const filename = `${Date.now()}-${file.name}`;

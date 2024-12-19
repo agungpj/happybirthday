@@ -19,8 +19,6 @@ import VoxelDog from '../components/voxel-dog'
 import { getMessaging, getToken } from 'firebase/messaging'
 import toast, { Toaster } from 'react-hot-toast'
 import useFcmToken from './useFcmToken'
-import { getDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase'
 
 
 const Home = () => {
@@ -39,15 +37,7 @@ const Home = () => {
 
   const { token } = useFcmToken();
  
-  const fetchUser = async () => {
-    const userId = localStorage.getItem('user');
-    if (userId) {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const user = userDoc.data()
-      }
-    }
-  }
+  
   
   const handleNotification = async (message, title = "🌈💥 Agung & Ayu 💫 🌸") => {
     const response = await fetch('/api/message', {
@@ -101,8 +91,6 @@ const Home = () => {
     setUser(userFromStorage)
     if (userFromStorage) {
       setShowLoginModal(false)
-      fetchUser()
-
     }
   }, [user])
 

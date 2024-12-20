@@ -1,25 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { onMessage } from "firebase/messaging";
-import { fetchToken, messaging } from "../firebase";
 import { useRouter } from "next/navigation";
-
-async function getNotificationPermissionAndToken() {
-  
-  if (Notification.permission === "granted") {
-    return await fetchToken();
-  }
-
-  if (Notification.permission !== "denied") {
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      return await fetchToken();
-    }
-  }
-
-  return null;
-}
 
 const useFcmToken = () => {
   const router = useRouter();
@@ -28,13 +10,34 @@ const useFcmToken = () => {
   const retryLoadToken = useRef(0);
   const isLoading = useRef(false);
 
+  const getNotificationPermissionAndToken = async () => {
+    // Ensure we're in browser environment
+    if (typeof window === 'undefined') return null;
+
+    // Dynamically import Firebase modules
+    const { fetchToken } = await import("../firebase");
+
+    if (Notification.permission === "granted") {
+      return await fetchToken();
+    }
+
+    if (Notification.permission !== "denied") {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        return await fetchToken();
+      }
+    }
+
+    return null;
+  };
+
   const loadToken = async () => {
     if (isLoading.current) return;
 
     isLoading.current = true;
     const token = await getNotificationPermissionAndToken();
 
-    if (Notification.permission === "denied") {
+    if (typeof window !== 'undefined' && Notification.permission === "denied") {
       setNotificationPermissionStatus("denied");
       console.info(
         "%cPush Notifications issue - permission denied",
@@ -51,7 +54,9 @@ const useFcmToken = () => {
       return;
     }
 
-    setNotificationPermissionStatus(Notification.permission);
+    setNotificationPermissionStatus(
+      typeof window !== 'undefined' ? Notification.permission : null
+    );
     setToken(token);
     isLoading.current = false;
   };
@@ -62,8 +67,10 @@ const useFcmToken = () => {
 
   useEffect(() => {
     const setupListener = async () => {
-      if (!token) return;
+      if (!token || typeof window === 'undefined') return;
 
+      // Dynamically import Firebase modules
+      const { messaging, onMessage } = await import("../firebase");
       const m = await messaging();
       if (!m) return;
 

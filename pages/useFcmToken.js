@@ -36,11 +36,7 @@ const useFcmToken = () => {
   const [token, setToken] = useState(null);
   const retryLoadToken = useRef(0);
   const isLoading = useRef(false);
-  const [notifications, setNotifications] = useState({
-    title: '',
-    body: ''
-  })
-
+ 
   const loadToken = async () => {
     if (isLoading.current) return;
 
@@ -95,11 +91,6 @@ const useFcmToken = () => {
         if (Notification.permission !== "granted") return;
 
         const link = payload.fcmOptions?.link || payload.data?.link;
-        setNotifications({
-          title: payload.notification?.title || "New message",
-          body: payload.notification?.body || "This is a new message",
-          data: link ? { url: link } : undefined,
-        })
         const n = new Notification(
           payload.notification?.title || "New message",
           {
@@ -132,9 +123,9 @@ const useFcmToken = () => {
     });
 
     return () => unsubscribe?.();
-  }, [token, router, notifications]);
+  }, [token, router]);
 
-  return { token, notificationPermissionStatus, notifications };
+  return { token, notificationPermissionStatus };
 };
 
 export default useFcmToken;

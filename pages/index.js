@@ -18,7 +18,7 @@ import { useState, useEffect, useRef } from 'react'
 import VoxelDog from '../components/voxel-dog'
 import { getMessaging, getToken } from 'firebase/messaging'
 import toast, { Toaster } from 'react-hot-toast'
-import useFcmToken from './useFcmToken'
+import useFcmToken from '../hooks/useFcmToken'
 
 
 const Home = () => {

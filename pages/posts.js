@@ -45,7 +45,7 @@ import CurrencyInput from 'react-currency-input-field'
 import VoxelDog from '../components/voxel-dog'
 import imageCompression from 'browser-image-compression'
 import { db, storage } from '../firebase'
-import useFcmToken from './useFcmToken'
+import useFcmToken from '../hooks/useFcmToken'
 
 const Posts = () => {
   const bgValue = useColorModeValue('whiteAlpha.900', 'whiteAlpha.200')

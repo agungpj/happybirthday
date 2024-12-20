@@ -37,7 +37,7 @@ import { db, storage } from '../firebase'
 import { collection, addDoc, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import VoxelDog from '../components/voxel-dog'
-import useFcmToken from './useFcmToken'
+import useFcmToken from '../hooks/useFcmToken'
 
 
 const Works = () => {

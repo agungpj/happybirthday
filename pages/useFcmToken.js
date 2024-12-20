@@ -2,23 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { onMessage } from "firebase/messaging";
-// import { fetchToken, messaging } from "f";
 import { fetchToken, messaging } from "../firebase";
 import { useRouter } from "next/navigation";
 
 async function getNotificationPermissionAndToken() {
-  // Step 1: Check if Notifications are supported in the browser.
   if (!("Notification" in window)) {
     console.info("This browser does not support desktop notification");
     return null;
   }
 
-  // Step 2: Check if permission is already granted.
   if (Notification.permission === "granted") {
     return await fetchToken();
   }
 
-  // Step 3: If permission is not denied, request permission from the user.
   if (Notification.permission !== "denied") {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
@@ -36,7 +32,7 @@ const useFcmToken = () => {
   const [token, setToken] = useState(null);
   const retryLoadToken = useRef(0);
   const isLoading = useRef(false);
- 
+
   const loadToken = async () => {
     if (isLoading.current) return;
 
@@ -55,7 +51,6 @@ const useFcmToken = () => {
 
     if (!token) {
       if (retryLoadToken.current >= 3) {
-        // alert("Unable to load token, refresh the browser");
         console.info(
           "%cPush Notifications issue - unable to load token after 3 retries",
           "color: green; background: #c7c7c7; padding: 8px; font-size: 20px"
@@ -77,7 +72,7 @@ const useFcmToken = () => {
   };
 
   useEffect(() => {
-      loadToken();
+    loadToken();
   }, []);
 
   useEffect(() => {

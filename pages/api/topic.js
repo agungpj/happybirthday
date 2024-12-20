@@ -5,8 +5,8 @@ if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
       privateKey: process.env.FIREBASE_PRIVATE_KEY_ENCODED.replace(/\\n/g, '\n'),
-      projectId: "agung2-apps",
-      clientEmail: "firebase-adminsdk-hyt3j@agung2-apps.iam.gserviceaccount.com"
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     }),
   });
 }

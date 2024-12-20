@@ -55,23 +55,23 @@ const Home = () => {
 
     const data = await response.json();
     console.log(data)
-    toast(
-      <>
-        <strong>{data.message.title}</strong>
-        <br />
-        {data.message.body}
-      </>,
-      {
-        icon: '🔔',
-      }
-    );
+    // toast(
+    //   <>
+    //     <strong>{data.message.title}</strong>
+    //     <br />
+    //     {data.message.body}
+    //   </>,
+    //   {
+    //     icon: '🔔',
+    //   }
+    // );
   };
 
   
   const subscribeToTopic = async () => {
     const messaging = getMessaging();
     try {
-      const token = await getToken(messaging, { vapidKey: "BIhXHGKp9qf6aY0QedAoPGDTa2d3y-qpX2ZyVLlFshrQldkzc7FZTuiWc4E8idE9zy58qc34i4HEDStoaMveQgo" });
+      const token = await getToken(messaging, { vapidKey: process.env.VAPID_KEY });
       if (token) {
         await fetch("/api/topic", {
           method: "POST",

@@ -2,13 +2,15 @@ importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAFdHvWkcgkwI0Dh3vgxXzk4NCLnbmDh20",
-  authDomain: "agung2-apps.firebaseapp.com",
-  projectId: "agung2-apps",
-  storageBucket: "agung2-apps.appspot.com",
-  messagingSenderId: "1031050448143",
-  appId: "1:1031050448143:web:ec164847852fdb19fb427a"
+apiKey: process.env.API_KEY,
+authDomain: process.env.AUTH_DOMAIN,
+projectId: process.env.FIREBASE_PROJECT_ID,
+storageBucket: process.env.PROJECT_ID,
+messagingSenderId: process.env.MESSAGING_SENDER_ID,
+appId: process.env.APP_ID
 };
+
+
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);

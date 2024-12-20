@@ -17,7 +17,7 @@ import Layout from '../components/layouts/article'
 import { useState, useEffect, useRef } from 'react'
 import VoxelDog from '../components/voxel-dog'
 import { getMessaging, getToken } from 'firebase/messaging'
-import toast, { Toaster } from 'react-hot-toast'
+import  { Toaster } from 'react-hot-toast'
 import useFcmToken from './useFcmToken'
 
 

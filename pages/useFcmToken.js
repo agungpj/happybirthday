@@ -5,16 +5,13 @@ import { useRouter } from "next/navigation";
 
 const useFcmToken = () => {
   const router = useRouter();
-  const [notificationPermissionStatus, setNotificationPermissionStatus] = useState(null);
   const [token, setToken] = useState(null);
   const retryLoadToken = useRef(0);
   const isLoading = useRef(false);
 
   const getNotificationPermissionAndToken = async () => {
-    // Ensure we're in browser environment
     if (typeof window === 'undefined') return null;
 
-    // Dynamically import Firebase modules
     const { fetchToken } = await import("../firebase");
 
     if (Notification.permission === "granted") {
@@ -38,11 +35,6 @@ const useFcmToken = () => {
     const token = await getNotificationPermissionAndToken();
 
     if (typeof window !== 'undefined' && Notification.permission === "denied") {
-      setNotificationPermissionStatus("denied");
-      console.info(
-        "%cPush Notifications issue - permission denied",
-        "color: green; background: #c7c7c7; padding: 8px; font-size: 20px"
-      );
       isLoading.current = false;
       return;
     }
@@ -50,13 +42,12 @@ const useFcmToken = () => {
     if (!token) {
       retryLoadToken.current += 1;
       isLoading.current = false;
-      await loadToken();
+      if (retryLoadToken.current < 3) { // Add retry limit
+        await loadToken();
+      }
       return;
     }
 
-    setNotificationPermissionStatus(
-      typeof window !== 'undefined' ? Notification.permission : null
-    );
     setToken(token);
     isLoading.current = false;
   };
@@ -69,7 +60,6 @@ const useFcmToken = () => {
     const setupListener = async () => {
       if (!token || typeof window === 'undefined') return;
 
-      // Dynamically import Firebase modules
       const { messaging, onMessage } = await import("../firebase");
       const m = await messaging();
       if (!m) return;
@@ -109,7 +99,7 @@ const useFcmToken = () => {
     return () => unsubscribe?.();
   }, [token, router]);
 
-  return { token, notificationPermissionStatus };
+  return { token };
 };
 
 export default useFcmToken;

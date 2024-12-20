@@ -6,11 +6,7 @@ import { fetchToken, messaging } from "../firebase";
 import { useRouter } from "next/navigation";
 
 async function getNotificationPermissionAndToken() {
-  if (!("Notification" in window)) {
-    console.info("This browser does not support desktop notification");
-    return null;
-  }
-
+  
   if (Notification.permission === "granted") {
     return await fetchToken();
   }
@@ -22,7 +18,6 @@ async function getNotificationPermissionAndToken() {
     }
   }
 
-  console.log("Notification permission not granted.");
   return null;
 }
 
@@ -50,17 +45,7 @@ const useFcmToken = () => {
     }
 
     if (!token) {
-      if (retryLoadToken.current >= 3) {
-        console.info(
-          "%cPush Notifications issue - unable to load token after 3 retries",
-          "color: green; background: #c7c7c7; padding: 8px; font-size: 20px"
-        );
-        isLoading.current = false;
-        return;
-      }
-
       retryLoadToken.current += 1;
-      console.error("An error occurred while retrieving token. Retrying...");
       isLoading.current = false;
       await loadToken();
       return;
@@ -98,10 +83,7 @@ const useFcmToken = () => {
           event.preventDefault();
           const link = event.target?.data?.url;
           if (link) {
-            console.log(link);
             router.push(link);
-          } else {
-            console.log("No link found in the notification payload");
           }
         };
       });
